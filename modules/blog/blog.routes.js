@@ -1,7 +1,8 @@
 import express from "express";
 import {
     getAllBlogs, getFeaturedBlogs, getBlogBySlug, getBlogCategories, getBlogTags,
-    createBlog, updateBlog, deleteBlog, adminGetAllBlogs, adminGetBlog
+    createBlog, updateBlog, deleteBlog, adminGetAllBlogs, adminGetBlog,
+    addComment, getComments, toggleLike, toggleSaveBlog, getSavedBlogs, incrementBlogViews
 } from "./blog.controller.js";
 import { protect } from "../../common/middlewares/auth.middleware.js";
 import { authorizeRoles } from "../../common/middlewares/role.middleware.js";
@@ -15,6 +16,17 @@ router.get("/featured", getFeaturedBlogs);
 router.get("/categories", getBlogCategories);
 router.get("/tags", getBlogTags);
 router.get("/:slug", getBlogBySlug);
+router.post("/:slug/view", incrementBlogViews);
+
+// Public Interactions
+router.get("/:blogId/comments", getComments);
+
+// Protected Interactions
+router.post("/:blogId/comments", protect, addComment);
+router.post("/:id/like", protect, toggleLike);
+router.post("/:blogId/save", protect, toggleSaveBlog);
+router.get("/user/saved", protect, getSavedBlogs);
+router.post("/create", protect, createBlog); // Allow authenticated users to create blogs
 
 // Admin
 router.use(protect, authorizeRoles(ROLES.ADMIN));

@@ -2,6 +2,7 @@ import { asyncHandler } from "../../common/middlewares/async.helper.js";
 import { successResponse, errorResponse } from "../../common/utils/responseHandler.utils.js";
 import Review from "./review.model.js";
 import TouristPlace from "../place/place.model.js";
+import Notification from "../notification/notification.model.js";
 
 // ============ PUBLIC ============
 
@@ -10,7 +11,7 @@ export const getPlaceReviews = asyncHandler(async (req, res) => {
     const { placeId } = req.params;
     const { page = 1, limit = 10, sort = "-createdAt" } = req.query;
 
-    const query = { placeId, isActive: true, isApproved: true };
+    const query = { placeId, isActive: true };
     const total = await Review.countDocuments(query);
     const reviews = await Review.find(query)
         .populate("userId", "name profileImage city")
@@ -20,7 +21,7 @@ export const getPlaceReviews = asyncHandler(async (req, res) => {
 
     // Get rating distribution
     const ratingDist = await Review.aggregate([
-        { $match: { placeId: (await import("mongoose")).default.Types.ObjectId.createFromHexString(placeId), isApproved: true, isActive: true } },
+        { $match: { placeId: (await import("mongoose")).default.Types.ObjectId.createFromHexString(placeId), isActive: true } },
         { $group: { _id: "$rating", count: { $sum: 1 } } },
         { $sort: { _id: -1 } },
     ]);
@@ -59,6 +60,13 @@ export const createReview = asyncHandler(async (req, res) => {
         images: images || [],
         visitDate,
         tripType,
+    });
+
+    await Notification.create({
+        title: "New Review Submitted",
+        message: `A new review has been submitted for ${place.name} and is awaiting approval.`,
+        type: "system",
+        link: "/admin/reviews"
     });
 
     return successResponse(res, 201, "Review submitted! Awaiting admin approval.", { review });
@@ -171,7 +179,7 @@ export const adminDeleteReview = asyncHandler(async (req, res) => {
 
 async function updatePlaceRating(placeId) {
     const stats = await Review.aggregate([
-        { $match: { placeId, isApproved: true, isActive: true } },
+        { $match: { placeId, isActive: true } },
         {
             $group: {
                 _id: null,

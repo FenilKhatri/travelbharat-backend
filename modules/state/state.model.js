@@ -37,6 +37,12 @@ const stateSchema = new mongoose.Schema(
             thumbnail: { type: String, default: "" },
             gallery: [{ type: String }],
         },
+        stateBranding: {
+            leftBackground: { type: String, default: "" },
+            rightBackground: { type: String, default: "" },
+            patternImage: { type: String, default: "" },
+            overlayImage: { type: String, default: "" }
+        },
         highlights: [
             {
                 title: { type: String },

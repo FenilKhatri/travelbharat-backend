@@ -4,6 +4,7 @@ import { generateUniqueSlug } from "../../common/utils/slug.utils.js";
 import { ITEMS_PER_PAGE } from "../../common/utils/constants.js";
 import City from "./city.model.js";
 import State from "../state/state.model.js";
+import Notification from "../notification/notification.model.js";
 
 // ============ PUBLIC ============
 
@@ -77,6 +78,12 @@ export const createCity = asyncHandler(async (req, res) => {
 
     // Update state totalCities count
     await State.findByIdAndUpdate(req.body.stateId, { $inc: { totalCities: 1 } });
+    
+    await Notification.create({
+        title: "New City Added",
+        message: `A new city "${city.name}" has been added.`,
+        type: "system"
+    });
 
     return successResponse(res, 201, "City created", { city });
 });

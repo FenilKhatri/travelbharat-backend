@@ -5,6 +5,7 @@ import { ITEMS_PER_PAGE } from "../../common/utils/constants.js";
 import TouristPlace from "./place.model.js";
 import City from "../city/city.model.js";
 import State from "../state/state.model.js";
+import Notification from "../notification/notification.model.js";
 
 // ============ PUBLIC ============
 
@@ -137,6 +138,12 @@ export const createPlace = asyncHandler(async (req, res) => {
     await City.findByIdAndUpdate(req.body.cityId, { $inc: { totalPlaces: 1 } });
     await State.findByIdAndUpdate(req.body.stateId, { $inc: { totalPlaces: 1 } });
 
+    await Notification.create({
+        title: "New Destination Added",
+        message: `A new destination "${place.name}" has been added.`,
+        type: "system"
+    });
+
     return successResponse(res, 201, "Place created", { place });
 });
 
@@ -159,12 +166,13 @@ export const deletePlace = asyncHandler(async (req, res) => {
 });
 
 export const adminGetAllPlaces = asyncHandler(async (req, res) => {
-    const { search, stateId, cityId, category, page = 1, limit = 20 } = req.query;
+    const { search, stateId, cityId, category, budget, page = 1, limit = 20 } = req.query;
     const query = {};
     if (search) query.name = { $regex: search, $options: "i" };
     if (stateId) query.stateId = stateId;
     if (cityId) query.cityId = cityId;
     if (category) query.category = category;
+    if (budget) query.budget = budget;
 
     const total = await TouristPlace.countDocuments(query);
     const places = await TouristPlace.find(query)

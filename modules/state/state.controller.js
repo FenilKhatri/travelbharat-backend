@@ -3,6 +3,7 @@ import { successResponse, errorResponse } from "../../common/utils/responseHandl
 import { generateUniqueSlug } from "../../common/utils/slug.utils.js";
 import { ITEMS_PER_PAGE } from "../../common/utils/constants.js";
 import State from "./state.model.js";
+import Notification from "../notification/notification.model.js";
 
 // ============ PUBLIC ============
 
@@ -60,6 +61,11 @@ export const getStateBySlug = asyncHandler(async (req, res) => {
 export const createState = asyncHandler(async (req, res) => {
     const slug = await generateUniqueSlug(State, req.body.name);
     const state = await State.create({ ...req.body, slug });
+    await Notification.create({
+        title: "New State Added",
+        message: `A new state "${state.name}" has been added.`,
+        type: "system"
+    });
     return successResponse(res, 201, "State created", { state });
 });
 
@@ -89,10 +95,13 @@ export const deleteState = asyncHandler(async (req, res) => {
 
 // Get all states for admin (includes inactive)
 export const adminGetAllStates = asyncHandler(async (req, res) => {
-    const { search, page = 1, limit = 20 } = req.query;
+    const { search, region, featured, page = 1, limit = 20 } = req.query;
 
     const query = {};
     if (search) query.name = { $regex: search, $options: "i" };
+    if (region) query.region = region;
+    if (featured === "true") query.featured = true;
+    else if (featured === "false") query.featured = false;
 
     const total = await State.countDocuments(query);
     const states = await State.find(query)

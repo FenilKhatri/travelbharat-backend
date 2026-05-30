@@ -5,7 +5,7 @@ import Notification from "./notification.model.js";
 // Admin: Get notifications
 export const getAdminNotifications = asyncHandler(async (req, res) => {
     // Return all system notifications and notifications for this user
-    const query = { $or: [{ user: req.user._id }, { type: "system" }] };
+    const query = { $or: [{ user: req.user.id }, { type: "system" }] };
     const notifications = await Notification.find(query).sort("-createdAt").limit(50);
     const unreadCount = await Notification.countDocuments({ ...query, read: false });
 
@@ -21,7 +21,7 @@ export const markAsRead = asyncHandler(async (req, res) => {
 
 // Admin: Mark all as read
 export const markAllAsRead = asyncHandler(async (req, res) => {
-    const query = { $or: [{ user: req.user._id }, { type: "system" }], read: false };
+    const query = { $or: [{ user: req.user.id }, { type: "system" }], read: false };
     await Notification.updateMany(query, { read: true });
     return successResponse(res, 200, "All marked as read");
 });
