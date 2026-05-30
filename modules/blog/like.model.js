@@ -5,26 +5,33 @@ const likeSchema = new mongoose.Schema(
         referenceId: {
             type: mongoose.Schema.Types.ObjectId,
             required: true,
-            alias: "ReferenceId"
-            // Can refer to Blog or Comment
+            index: true,
         },
-        onModel: {
+
+        referenceType: {
             type: String,
+            enum: ["blog", "comment"],
             required: true,
-            enum: ['Blog', 'Comment']
         },
+
         author: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
-            required: true,
-            alias: "Author"
+            userId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+                required: true,
+            },
+            name: String,
+            profilePic: String,
+        },
+
+        likeTime: {
+            type: Date,
+            default: Date.now,
         },
     },
-    { timestamps: true }
+    {
+        timestamps: true,
+    }
 );
 
-// Ensure a user can only like a specific reference once
-likeSchema.index({ referenceId: 1, author: 1 }, { unique: true });
-
-const Like = mongoose.model("Like", likeSchema);
-export default Like;
+export default mongoose.model("Like", likeSchema);

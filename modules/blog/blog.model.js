@@ -1,74 +1,5 @@
 import mongoose from "mongoose";
 
-const commentSchema = new mongoose.Schema(
-    {
-        blogId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Blog",
-            required: true,
-            index: true,
-        },
-
-        text: {
-            type: String,
-            required: true,
-            trim: true,
-        },
-
-        author: {
-            userId: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "User",
-                required: true,
-            },
-            name: String,
-            profilePic: String,
-        },
-
-        likes: {
-            type: Number,
-            default: 0,
-        },
-    },
-    {
-        timestamps: true,
-    }
-);
-
-const likeSchema = new mongoose.Schema(
-    {
-        referenceId: {
-            type: mongoose.Schema.Types.ObjectId,
-            required: true,
-            index: true,
-        },
-
-        referenceType: {
-            type: String,
-            enum: ["blog", "comment"],
-            required: true,
-        },
-
-        author: {
-            userId: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "User",
-                required: true,
-            },
-            name: String,
-            profilePic: String,
-        },
-
-        likeTime: {
-            type: Date,
-            default: Date.now,
-        },
-    },
-    {
-        timestamps: true,
-    }
-);
-
 const blogSchema = new mongoose.Schema(
     {
         title: {
@@ -163,7 +94,7 @@ const blogSchema = new mongoose.Schema(
         relatedDestinations: [
             {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: "Destination",
+                ref: "TouristPlace",
             },
         ],
 
@@ -272,11 +203,6 @@ blogSchema.index({
     publishedAt: -1,
 });
 
-// BLOG BY SLUG
-blogSchema.index({
-    slug: 1,
-});
-
 // FILTER BY TAG
 blogSchema.index({
     tags: 1,
@@ -294,6 +220,4 @@ blogSchema.index({
     likes: -1,
 });
 
-export const Blog = mongoose.model("Blog", blogSchema);
-export const Comment = mongoose.model("Comment", commentSchema);
-export const Like = mongoose.model("Like", likeSchema);
+export default mongoose.model("Blog", blogSchema);

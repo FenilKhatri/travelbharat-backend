@@ -6,28 +6,33 @@ const commentSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Blog",
             required: true,
-            alias: "BlogId"
+            index: true,
         },
+
         text: {
             type: String,
-            required: [true, "Comment text is required"],
-            trim: true,
-            maxlength: [1000, "Comment cannot exceed 1000 characters"],
-            alias: "Text"
-        },
-        author: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
             required: true,
-            alias: "Author"
+            trim: true,
         },
-        nLikes: {
+
+        author: {
+            userId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+                required: true,
+            },
+            name: String,
+            profilePic: String,
+        },
+
+        likes: {
             type: Number,
             default: 0,
         },
     },
-    { timestamps: true }
+    {
+        timestamps: true,
+    }
 );
 
-const Comment = mongoose.model("Comment", commentSchema);
-export default Comment;
+export default mongoose.model("Comment", commentSchema);

@@ -8,6 +8,12 @@ import Like from "./like.model.js";
 import SavedBlog from "./savedBlog.model.js";
 import Notification from "../notification/notification.model.js";
 
+// Helper to populate author
+const populateAuthor = {
+    path: "author",
+    select: "name username profileImage bio",
+};
+
 // ============ PUBLIC ============
 
 export const getAllBlogs = asyncHandler(async (req, res) => {
@@ -22,12 +28,12 @@ export const getAllBlogs = asyncHandler(async (req, res) => {
 
     const total = await Blog.countDocuments(query);
     const blogs = await Blog.find(query)
-        .populate("author", "name profileImage")
+        .populate(populateAuthor)
         .populate("stateId", "name slug")
         .sort("-priority -publishedAt")
         .skip((page - 1) * limit)
         .limit(parseInt(limit))
-        .select("title slug excerpt category tags images.thumbnail readTime views publishedAt author stateId");
+        .select("-content -travelTips -faqs");
 
     return successResponse(res, 200, "Blogs fetched", {
         blogs,
@@ -37,30 +43,131 @@ export const getAllBlogs = asyncHandler(async (req, res) => {
 
 export const getFeaturedBlogs = asyncHandler(async (req, res) => {
     const blogs = await Blog.find({ isActive: true, isPublished: true, featured: true })
-        .populate("author", "name profileImage")
+        .populate(populateAuthor)
         .sort("-priority -publishedAt")
         .limit(6)
-        .select("title slug excerpt category images.thumbnail readTime publishedAt author");
+        .select("-content -travelTips -faqs");
 
     return successResponse(res, 200, "Featured blogs fetched", { blogs });
 });
 
+export const getPopularBlogs = asyncHandler(async (req, res) => {
+    const blogs = await Blog.find({ isActive: true, isPublished: true })
+        .sort("-views -likes")
+        .populate(populateAuthor)
+        .limit(6)
+        .select("-content -travelTips -faqs");
+
+    return successResponse(res, 200, "Popular blogs fetched", { blogs });
+});
+
 export const getBlogBySlug = asyncHandler(async (req, res) => {
     const blog = await Blog.findOne({ slug: req.params.slug, isActive: true, isPublished: true })
-        .populate("author", "name profileImage bio")
-        .populate("stateId", "name slug");
+        .populate(populateAuthor)
+        .populate("stateId", "name slug")
+        .populate("relatedCities", "name slug")
+        .populate("relatedDestinations", "name slug");
 
     if (!blog) return errorResponse(res, 404, "Blog not found");
-    return successResponse(res, 200, "Blog fetched", { blog });
+
+    // Fetch related blogs
+    const relatedBlogs = await Blog.find({
+        _id: { $ne: blog._id },
+        isActive: true,
+        isPublished: true,
+        $or: [
+            { category: blog.category },
+            { tags: { $in: blog.tags } }
+        ]
+    })
+    .populate(populateAuthor)
+    .sort("-priority -publishedAt")
+    .limit(3)
+    .select("-content -travelTips -faqs");
+
+    return successResponse(res, 200, "Blog fetched", {
+        blog,
+        relatedBlogs
+    });
+});
+
+export const getRelatedBlogs = asyncHandler(async (req, res) => {
+    const blog = await Blog.findOne({ slug: req.params.slug });
+    if (!blog) return errorResponse(res, 404, "Blog not found");
+
+    const relatedBlogs = await Blog.find({
+        _id: { $ne: blog._id },
+        isActive: true,
+        isPublished: true,
+        $or: [
+            { category: blog.category },
+            { tags: { $in: blog.tags } }
+        ]
+    })
+    .populate(populateAuthor)
+    .sort("-priority -publishedAt")
+    .limit(6)
+    .select("-content -travelTips -faqs");
+
+    return successResponse(res, 200, "Related blogs fetched", { blogs: relatedBlogs });
+});
+
+export const getBlogsByCategory = asyncHandler(async (req, res) => {
+    const { category } = req.params;
+    const { page = 1, limit = ITEMS_PER_PAGE } = req.query;
+
+    const query = { isActive: true, isPublished: true, category };
+    const total = await Blog.countDocuments(query);
+    
+    const blogs = await Blog.find(query)
+        .populate(populateAuthor)
+        .sort("-priority -publishedAt")
+        .skip((page - 1) * limit)
+        .limit(parseInt(limit))
+        .select("-content -travelTips -faqs");
+
+    return successResponse(res, 200, `Blogs for category ${category} fetched`, {
+        blogs,
+        pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) }
+    });
+});
+
+export const getBlogsByTag = asyncHandler(async (req, res) => {
+    const { tag } = req.params;
+    const { page = 1, limit = ITEMS_PER_PAGE } = req.query;
+
+    const query = { isActive: true, isPublished: true, tags: { $in: [tag] } };
+    const total = await Blog.countDocuments(query);
+    
+    const blogs = await Blog.find(query)
+        .populate(populateAuthor)
+        .sort("-priority -publishedAt")
+        .skip((page - 1) * limit)
+        .limit(parseInt(limit))
+        .select("-content -travelTips -faqs");
+
+    return successResponse(res, 200, `Blogs for tag ${tag} fetched`, {
+        blogs,
+        pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) }
+    });
 });
 
 export const incrementBlogViews = asyncHandler(async (req, res) => {
     const { slug } = req.params;
-    await Blog.findOneAndUpdate(
-        { slug, isActive: true, isPublished: true },
-        { $inc: { views: 1 } }
-    );
-    return successResponse(res, 200, "View incremented");
+    // Basic IP-based prevention of refresh abuse using cookies
+    const viewedBlogs = req.cookies?.viewedBlogs ? JSON.parse(req.cookies.viewedBlogs) : [];
+    
+    if (!viewedBlogs.includes(slug)) {
+        await Blog.findOneAndUpdate(
+            { slug, isActive: true, isPublished: true },
+            { $inc: { views: 1 } }
+        );
+        viewedBlogs.push(slug);
+        res.cookie('viewedBlogs', JSON.stringify(viewedBlogs), { maxAge: 24 * 60 * 60 * 1000, httpOnly: true });
+        return successResponse(res, 200, "View incremented");
+    }
+    
+    return successResponse(res, 200, "Already viewed");
 });
 
 export const getBlogCategories = asyncHandler(async (req, res) => {
@@ -83,10 +190,13 @@ export const getBlogTags = asyncHandler(async (req, res) => {
     return successResponse(res, 200, "Blog tags fetched", { tags });
 });
 
-// ============ ADMIN ============
+// ============ ADMIN / CRUD ============
 
 export const createBlog = asyncHandler(async (req, res) => {
-    const slug = await generateUniqueSlug(Blog, req.body.title);
+    let slug = req.body.slug;
+    if (!slug) {
+        slug = await generateUniqueSlug(Blog, req.body.title);
+    }
     const blogData = {
         ...req.body,
         slug,
@@ -99,7 +209,7 @@ export const createBlog = asyncHandler(async (req, res) => {
 
 export const updateBlog = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    if (req.body.title) {
+    if (req.body.title && !req.body.slug) {
         req.body.slug = await generateUniqueSlug(Blog, req.body.title, id);
     }
     if (req.body.isPublished) {
@@ -125,7 +235,7 @@ export const adminGetAllBlogs = asyncHandler(async (req, res) => {
 
     const total = await Blog.countDocuments(query);
     const blogs = await Blog.find(query)
-        .populate("author", "name")
+        .populate(populateAuthor)
         .sort("-createdAt")
         .skip((page - 1) * limit)
         .limit(parseInt(limit));
@@ -137,7 +247,7 @@ export const adminGetAllBlogs = asyncHandler(async (req, res) => {
 });
 
 export const adminGetBlog = asyncHandler(async (req, res) => {
-    const blog = await Blog.findById(req.params.id).populate("author", "name");
+    const blog = await Blog.findById(req.params.id).populate(populateAuthor);
     if (!blog) return errorResponse(res, 404, "Blog not found");
     return successResponse(res, 200, "Blog fetched", { blog });
 });
@@ -152,7 +262,16 @@ export const addComment = asyncHandler(async (req, res) => {
     const blog = await Blog.findById(blogId);
     if (!blog) return errorResponse(res, 404, "Blog not found");
 
-    const comment = await Comment.create({ blogId, text, author: userId });
+    const comment = await Comment.create({ 
+        blogId, 
+        text, 
+        author: {
+            userId: req.user.id,
+            name: req.user.name,
+            profilePic: req.user.profileImage
+        } 
+    });
+    
     await Blog.findByIdAndUpdate(blogId, { $inc: { commentCount: 1 } });
 
     await Notification.create({
@@ -161,32 +280,70 @@ export const addComment = asyncHandler(async (req, res) => {
         type: "system"
     });
 
-    await comment.populate("author", "name profileImage");
     return successResponse(res, 201, "Comment added", { comment });
 });
 
 export const getComments = asyncHandler(async (req, res) => {
     const { blogId } = req.params;
-    const comments = await Comment.find({ blogId }).populate("author", "name profileImage").sort("-createdAt");
-    return successResponse(res, 200, "Comments fetched", { comments });
+    const { page = 1, limit = 10 } = req.query;
+    
+    const comments = await Comment.find({ blogId })
+        .sort("-createdAt")
+        .skip((page - 1) * limit)
+        .limit(parseInt(limit));
+        
+    const total = await Comment.countDocuments({ blogId });
+    
+    return successResponse(res, 200, "Comments fetched", { 
+        comments,
+        pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) }
+    });
+});
+
+export const deleteComment = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const comment = await Comment.findById(id);
+    
+    if (!comment) return errorResponse(res, 404, "Comment not found");
+    
+    if (comment.author.userId.toString() !== req.user.id && req.user.role !== 'admin') {
+        return errorResponse(res, 403, "Not authorized to delete this comment");
+    }
+    
+    await Comment.findByIdAndDelete(id);
+    await Blog.findByIdAndUpdate(comment.blogId, { $inc: { commentCount: -1 } });
+    
+    return successResponse(res, 200, "Comment deleted");
 });
 
 export const toggleLike = asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    const { onModel } = req.body; // 'Blog' or 'Comment'
+    const { id } = req.params; // referenceId
+    const { referenceType } = req.body; // 'blog' or 'comment'
     const userId = req.user.id;
 
-    const existingLike = await Like.findOne({ referenceId: id, author: userId });
+    if (!["blog", "comment"].includes(referenceType)) {
+        return errorResponse(res, 400, "Invalid referenceType");
+    }
+
+    const existingLike = await Like.findOne({ referenceId: id, "author.userId": userId, referenceType });
     
     if (existingLike) {
         await Like.findByIdAndDelete(existingLike._id);
-        if (onModel === 'Blog') await Blog.findByIdAndUpdate(id, { $inc: { likes: -1 } });
-        if (onModel === 'Comment') await Comment.findByIdAndUpdate(id, { $inc: { nLikes: -1 } });
+        if (referenceType === 'blog') await Blog.findByIdAndUpdate(id, { $inc: { likes: -1 } });
+        if (referenceType === 'comment') await Comment.findByIdAndUpdate(id, { $inc: { likes: -1 } });
         return successResponse(res, 200, "Unliked successfully", { isLiked: false });
     } else {
-        await Like.create({ referenceId: id, onModel, author: userId });
-        if (onModel === 'Blog') await Blog.findByIdAndUpdate(id, { $inc: { likes: 1 } });
-        if (onModel === 'Comment') await Comment.findByIdAndUpdate(id, { $inc: { nLikes: 1 } });
+        await Like.create({ 
+            referenceId: id, 
+            referenceType, 
+            author: {
+                userId: req.user.id,
+                name: req.user.name,
+                profilePic: req.user.profileImage
+            }
+        });
+        if (referenceType === 'blog') await Blog.findByIdAndUpdate(id, { $inc: { likes: 1 } });
+        if (referenceType === 'comment') await Comment.findByIdAndUpdate(id, { $inc: { likes: 1 } });
         return successResponse(res, 200, "Liked successfully", { isLiked: true });
     }
 });
@@ -210,7 +367,7 @@ export const getSavedBlogs = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const saved = await SavedBlog.find({ userId }).populate({
         path: "blogId",
-        populate: { path: "author", select: "name profileImage" }
+        populate: populateAuthor
     }).sort("-createdAt");
 
     const blogs = saved.map(s => s.blogId);
