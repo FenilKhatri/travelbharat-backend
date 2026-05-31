@@ -1,11 +1,13 @@
 import { asyncHandler } from "../../common/middlewares/async.helper.js";
 import { successResponse, errorResponse } from "../../common/utils/responseHandler.utils.js";
 import SavedTrip from "./trip.model.js";
+import TouristPlace from "../place/place.model.js";
+import Notification from "../notification/notification.model.js";
 
 // Get user's trips
 export const getMyTrips = asyncHandler(async (req, res) => {
     const trips = await SavedTrip.find({ userId: req.user.id })
-        .populate("places.placeId", "name slug images.thumbnail category")
+        .populate("places.placeId", "name slug heroImage images category stateId cityId")
         .sort("-updatedAt");
 
     return successResponse(res, 200, "Trips fetched", { trips });
@@ -14,7 +16,13 @@ export const getMyTrips = asyncHandler(async (req, res) => {
 // Get single trip
 export const getTrip = asyncHandler(async (req, res) => {
     const trip = await SavedTrip.findOne({ _id: req.params.id, userId: req.user.id })
-        .populate("places.placeId", "name slug images.thumbnail category rating stateId cityId entryFee timings");
+        .populate({
+            path: "places.placeId",
+            populate: [
+                { path: "stateId", select: "name heroImage images" },
+                { path: "cityId", select: "name images" }
+            ]
+        });
 
     if (!trip) return errorResponse(res, 404, "Trip not found");
     return successResponse(res, 200, "Trip fetched", { trip });
@@ -22,7 +30,26 @@ export const getTrip = asyncHandler(async (req, res) => {
 
 // Create trip
 export const createTrip = asyncHandler(async (req, res) => {
-    const trip = await SavedTrip.create({ ...req.body, userId: req.user.id });
+    const trip = await SavedTrip.create({
+        ...req.body,
+        userId: req.user.id
+    });
+
+    await Notification.create({
+        title: "Trip Created",
+        message: `Your trip "${trip.name}" has been successfully planned.`,
+        type: "success",
+        user: req.user.id,
+        link: `/user/trips/${trip._id}`
+    });
+
+    await Notification.create({
+        title: "New Trip Planned",
+        message: `A user planned a new trip: "${trip.name}".`,
+        type: "system",
+        link: `/admin/trips`
+    });
+
     return successResponse(res, 201, "Trip created", { trip });
 });
 
@@ -130,3 +157,97 @@ export const adminDeleteTrip = asyncHandler(async (req, res) => {
     if (!trip) return errorResponse(res, 404, "Trip not found");
     return successResponse(res, 200, "Trip deleted by admin");
 });
+
+// =========================
+// EXPENSES
+// =========================
+export const addExpense = asyncHandler(async (req, res) => {
+    const trip = await SavedTrip.findOne({ _id: req.params.id, userId: req.user.id });
+    if (!trip) return errorResponse(res, 404, "Trip not found");
+
+    trip.expenses.push(req.body);
+    await trip.save();
+    return successResponse(res, 200, "Expense added", { trip });
+});
+
+export const deleteExpense = asyncHandler(async (req, res) => {
+    const trip = await SavedTrip.findOne({ _id: req.params.id, userId: req.user.id });
+    if (!trip) return errorResponse(res, 404, "Trip not found");
+
+    trip.expenses = trip.expenses.filter(e => e._id.toString() !== req.params.expenseId);
+    await trip.save();
+    return successResponse(res, 200, "Expense deleted", { trip });
+});
+
+// =========================
+// ITINERARY
+// =========================
+export const addItineraryDay = asyncHandler(async (req, res) => {
+    const trip = await SavedTrip.findOne({ _id: req.params.id, userId: req.user.id });
+    if (!trip) return errorResponse(res, 404, "Trip not found");
+
+    trip.itinerary.push(req.body);
+    // Sort by day number
+    trip.itinerary.sort((a, b) => a.dayNumber - b.dayNumber);
+    await trip.save();
+    return successResponse(res, 200, "Itinerary day added", { trip });
+});
+
+export const deleteItineraryDay = asyncHandler(async (req, res) => {
+    const trip = await SavedTrip.findOne({ _id: req.params.id, userId: req.user.id });
+    if (!trip) return errorResponse(res, 404, "Trip not found");
+
+    trip.itinerary = trip.itinerary.filter(i => i._id.toString() !== req.params.dayId);
+    await trip.save();
+    return successResponse(res, 200, "Itinerary day deleted", { trip });
+});
+
+// =========================
+// GALLERY
+// =========================
+import { uploadToCloudinary } from "../../config/cloudinary.js";
+
+export const uploadGallery = asyncHandler(async (req, res) => {
+    const trip = await SavedTrip.findOne({ _id: req.params.id, userId: req.user.id });
+    if (!trip) return errorResponse(res, 404, "Trip not found");
+
+    if (!req.files || req.files.length === 0) {
+        return errorResponse(res, 400, "No files provided");
+    }
+
+    if (trip.gallery.length + req.files.length > 5) {
+        return errorResponse(res, 400, "Maximum 5 files allowed in gallery");
+    }
+
+    const userName = req.user.name ? req.user.name.replace(/[^a-zA-Z0-9]/g, '_') : 'user';
+    const tripName = trip.name ? trip.name.replace(/[^a-zA-Z0-9]/g, '_') : 'trip';
+    const folder = `travelbharat/${userName}/${tripName}`;
+
+    const uploadPromises = req.files.map(async (file) => {
+        const b64 = Buffer.from(file.buffer).toString("base64");
+        const dataURI = `data:${file.mimetype};base64,${b64}`;
+        const result = await uploadToCloudinary(dataURI, folder);
+        return {
+            url: result.url,
+            publicId: result.publicId,
+            resourceType: file.mimetype.startsWith("video") ? "video" : "image"
+        };
+    });
+
+    const uploadedFiles = await Promise.all(uploadPromises);
+    
+    trip.gallery.push(...uploadedFiles);
+    await trip.save();
+
+    return successResponse(res, 200, "Gallery updated", { trip });
+});
+
+export const deleteGalleryItem = asyncHandler(async (req, res) => {
+    const trip = await SavedTrip.findOne({ _id: req.params.id, userId: req.user.id });
+    if (!trip) return errorResponse(res, 404, "Trip not found");
+
+    trip.gallery = trip.gallery.filter(g => g._id.toString() !== req.params.imageId);
+    await trip.save();
+    return successResponse(res, 200, "Gallery item deleted", { trip });
+});
+

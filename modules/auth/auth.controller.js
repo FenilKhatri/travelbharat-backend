@@ -7,6 +7,7 @@ import { setAuthCookie, clearAuthCookie } from "../../common/utils/cookie.utils.
 import { successResponse, errorResponse } from "../../common/utils/responseHandler.utils.js";
 import { sendEmail, getWelcomeEmail, getVerificationEmail, getPasswordResetEmail } from "../../config/email.js";
 import admin from "../../config/firebaseAdmin.js";
+import Notification from "../notification/notification.model.js";
 
 // Register
 export const register = asyncHandler(async (req, res) => {
@@ -22,6 +23,13 @@ export const register = asyncHandler(async (req, res) => {
     } catch (err) {
         console.error("Welcome email failed:", err.message);
     }
+
+    await Notification.create({
+        title: "New User Registration",
+        message: `${user.name} has joined the platform.`,
+        type: "system",
+        link: `/admin/users`
+    });
 
     return successResponse(res, 201, "User registered successfully!", { user });
 });
@@ -75,6 +83,13 @@ export const googleAuth = asyncHandler(async (req, res) => {
     } catch (err) {
         console.error("Welcome email failed:", err.message);
     }
+
+    await Notification.create({
+        title: "New User Registration",
+        message: `${user.name} has joined via Google.`,
+        type: "system",
+        link: `/admin/users`
+    });
 
     const jwtToken = generateToken(user);
     setAuthCookie(res, jwtToken);
@@ -144,11 +159,11 @@ export const verifyEmail = asyncHandler(async (req, res) => {
 
 // Update Profile
 export const updateProfile = asyncHandler(async (req, res) => {
-    const { name, phone, bio, city, state, profileImage } = req.body;
+    const { name, phone, bio, city, state, profileImage, gender, dob, country } = req.body;
 
     const user = await User.findByIdAndUpdate(
         req.user.id,
-        { name, phone, bio, city, state, profileImage },
+        { name, phone, bio, city, state, profileImage, gender, dob, country },
         { new: true, runValidators: true }
     );
 

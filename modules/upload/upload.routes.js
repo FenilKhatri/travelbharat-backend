@@ -7,7 +7,7 @@ import { ROLES } from "../../common/utils/constants.js";
 
 const router = express.Router();
 
-router.use(protect, authorizeRoles(ROLES.ADMIN));
+router.use(protect); // Only require auth, not admin role
 router.post("/single", uploadSingle, uploadImage);
 router.post("/multiple", uploadMultiple, uploadImages);
 

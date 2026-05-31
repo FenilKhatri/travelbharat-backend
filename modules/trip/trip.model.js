@@ -38,6 +38,10 @@ const savedTripSchema = new mongoose.Schema(
             type: Number,
             default: 1,
         },
+        totalPerson: {
+            type: Number,
+            default: 1,
+        },
         budget: {
             type: String,
             enum: ["budget", "moderate", "luxury"],
@@ -60,6 +64,48 @@ const savedTripSchema = new mongoose.Schema(
             type: String,
             default: "",
         },
+        status: {
+            type: String,
+            enum: ["draft", "upcoming", "ongoing", "completed", "cancelled"],
+            default: "upcoming",
+        },
+        completedAt: {
+            type: Date,
+        },
+        autoCompleted: {
+            type: Boolean,
+            default: false,
+        },
+        gallery: [
+            {
+                url: String,
+                publicId: String,
+                resourceType: { type: String, default: "image" },
+                uploadedAt: { type: Date, default: Date.now },
+            }
+        ],
+        expenses: [
+            {
+                title: String,
+                amount: Number,
+                category: { type: String, enum: ["food", "transport", "accommodation", "shopping", "activities", "other"], default: "other" },
+                date: { type: Date, default: Date.now },
+            }
+        ],
+        itinerary: [
+            {
+                dayNumber: Number,
+                title: String,
+                date: Date,
+                activities: [
+                    {
+                        time: String,
+                        description: String,
+                        activityType: { type: String, enum: ["place", "food", "travel", "other"], default: "other" },
+                    }
+                ]
+            }
+        ]
     },
     {
         timestamps: true,

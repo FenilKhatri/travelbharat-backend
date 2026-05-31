@@ -8,8 +8,8 @@ import placeRoutes from "../modules/place/place.routes.js";
 import blogRoutes from "../modules/blog/blog.routes.js";
 import festivalRoutes from "../modules/festival/festival.routes.js";
 import reviewRoutes from "../modules/review/review.routes.js";
-import wishlistRoutes from "../modules/wishlist/wishlist.routes.js";
 import tripRoutes from "../modules/trip/trip.routes.js";
+import likeRoutes from "../modules/like/like.routes.js";
 import newsletterRoutes from "../modules/newsletter/newsletter.routes.js";
 import contactRoutes from "../modules/contact/contact.routes.js";
 import searchRoutes from "../modules/search/search.routes.js";
@@ -30,8 +30,8 @@ router.use("/festivals", festivalRoutes);
 router.use("/reviews", reviewRoutes);
 
 // User Features
-router.use("/wishlist", wishlistRoutes);
 router.use("/trips", tripRoutes);
+router.use("/likes", likeRoutes);
 
 // Public Forms
 router.use("/newsletter", newsletterRoutes);

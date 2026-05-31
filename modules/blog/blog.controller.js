@@ -204,6 +204,15 @@ export const createBlog = asyncHandler(async (req, res) => {
         publishedAt: req.body.isPublished ? new Date() : null,
     };
     const blog = await Blog.create(blogData);
+
+    await Notification.create({
+        title: "Blog Created",
+        message: `Your blog "${blog.title}" has been successfully created.`,
+        type: "success",
+        user: req.user.id,
+        link: `/blogs/${blog.slug}`
+    });
+
     return successResponse(res, 201, "Blog created", { blog });
 });
 
@@ -359,6 +368,14 @@ export const toggleSaveBlog = asyncHandler(async (req, res) => {
         return successResponse(res, 200, "Blog removed from saved", { isSaved: false });
     } else {
         await SavedBlog.create({ blogId, userId });
+        const blog = await Blog.findById(blogId);
+        await Notification.create({
+            title: "Article Saved",
+            message: `You saved "${blog?.title || 'an article'}" to your collection.`,
+            type: "info",
+            user: userId,
+            link: "/user/saved-blogs"
+        });
         return successResponse(res, 200, "Blog saved", { isSaved: true });
     }
 });

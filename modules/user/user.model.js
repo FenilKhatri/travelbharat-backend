@@ -58,6 +58,18 @@ const userSchema = new mongoose.Schema(
             type: String,
             default: "",
         },
+        country: {
+            type: String,
+            default: "",
+        },
+        gender: {
+            type: String,
+            enum: ["male", "female", "other", ""],
+            default: "",
+        },
+        dob: {
+            type: Date,
+        },
         failedLoginAttempts: {
             type: Number,
             default: 0,
