@@ -2,6 +2,7 @@ import { asyncHandler } from "../../common/middlewares/async.helper.js";
 import { successResponse, errorResponse } from "../../common/utils/responseHandler.utils.js";
 import { sendEmail, getContactConfirmationEmail } from "../../config/email.js";
 import ContactInquiry from "./contact.model.js";
+import Notification from "../notification/notification.model.js";
 
 // Public: Submit contact form
 export const submitContact = asyncHandler(async (req, res) => {
@@ -20,6 +21,14 @@ export const submitContact = asyncHandler(async (req, res) => {
     } catch (err) {
         console.error("Contact confirmation email failed:", err.message);
     }
+
+    // Admin notification
+    await Notification.create({
+        title: "New Contact Request",
+        message: `New contact message received from ${name}`,
+        type: "system",
+        link: `/admin/contact/${inquiry._id}`
+    });
 
     return successResponse(res, 201, "Message sent! We'll get back to you soon.", { inquiry });
 });

@@ -159,11 +159,17 @@ export const verifyEmail = asyncHandler(async (req, res) => {
 
 // Update Profile
 export const updateProfile = asyncHandler(async (req, res) => {
-    const { name, phone, bio, city, state, profileImage, gender, dob, country } = req.body;
+    const updates = {};
+    const fields = ["name", "phone", "bio", "city", "state", "profileImage", "coverImage", "gender", "dob", "country"];
+    fields.forEach(field => {
+        if (req.body[field] !== undefined) {
+            updates[field] = req.body[field];
+        }
+    });
 
     const user = await User.findByIdAndUpdate(
         req.user.id,
-        { name, phone, bio, city, state, profileImage, gender, dob, country },
+        { $set: updates },
         { new: true, runValidators: true }
     );
 

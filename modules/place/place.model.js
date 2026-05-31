@@ -320,6 +320,16 @@ const placeSchema = new mongoose.Schema(
             max: 5,
         },
 
+        commentCount: {
+            type: Number,
+            default: 0,
+        },
+
+        saveCount: {
+            type: Number,
+            default: 0,
+        },
+
         reviewCount: {
             type: Number,
             default: 0,

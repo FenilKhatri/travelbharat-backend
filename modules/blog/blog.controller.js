@@ -197,37 +197,124 @@ export const createBlog = asyncHandler(async (req, res) => {
     if (!slug) {
         slug = await generateUniqueSlug(Blog, req.body.title);
     }
+    const isUser = req.user.role === 'user';
     const blogData = {
         ...req.body,
         slug,
         author: req.user.id,
-        publishedAt: req.body.isPublished ? new Date() : null,
+        status: isUser ? "pending" : (req.body.isPublished ? "published" : "draft"),
+        isPublished: isUser ? false : (req.body.isPublished || false),
+        publishedAt: (!isUser && req.body.isPublished) ? new Date() : null,
     };
     const blog = await Blog.create(blogData);
 
-    await Notification.create({
-        title: "Blog Created",
-        message: `Your blog "${blog.title}" has been successfully created.`,
-        type: "success",
-        user: req.user.id,
-        link: `/blogs/${blog.slug}`
-    });
+    if (isUser) {
+        await Notification.create({
+            title: "Blog Submitted",
+            message: `Your blog "${blog.title}" has been submitted for review.`,
+            type: "info",
+            user: req.user.id,
+            link: `/user/my-blogs`
+        });
+        await Notification.create({
+            title: "New Blog Request",
+            message: `New blog approval request received from ${req.user.name}.`,
+            type: "system",
+            link: "/admin/moderation"
+        });
+    } else {
+        await Notification.create({
+            title: "Blog Created",
+            message: `Your blog "${blog.title}" has been successfully created.`,
+            type: "success",
+            user: req.user.id,
+            link: `/admin/blogs`
+        });
+    }
 
     return successResponse(res, 201, "Blog created", { blog });
 });
 
 export const updateBlog = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    if (req.body.title && !req.body.slug) {
+    const blog = await Blog.findById(id);
+    if (!blog) return errorResponse(res, 404, "Blog not found");
+
+    const isAuthor = blog.author.toString() === req.user.id.toString();
+    const isAdmin = req.user.role === 'admin';
+
+    if (!isAuthor && !isAdmin) return errorResponse(res, 403, "Not authorized");
+
+    if (req.body.title && !req.body.slug && blog.title !== req.body.title) {
         req.body.slug = await generateUniqueSlug(Blog, req.body.title, id);
     }
-    if (req.body.isPublished) {
-        const existing = await Blog.findById(id);
-        if (!existing.publishedAt) req.body.publishedAt = new Date();
+
+    // If published and user is editing, create an editRequest
+    if (blog.status === 'published' && isAuthor && !isAdmin) {
+        blog.editRequest = {
+            requestedAt: new Date(),
+            ...req.body
+        };
+        await blog.save();
+        
+        await Notification.create({
+            title: "Update Request Submitted",
+            message: `Your update request for "${blog.title}" has been submitted.`,
+            type: "info",
+            user: req.user.id,
+            link: "/user/my-blogs"
+        });
+        await Notification.create({
+            title: "Blog Edit Request",
+            message: `Edit request received for blog "${blog.title}".`,
+            type: "system",
+            link: "/admin/moderation"
+        });
+
+        return successResponse(res, 200, "Update request submitted successfully.", { blog });
     }
-    const blog = await Blog.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
-    if (!blog) return errorResponse(res, 404, "Blog not found");
+
+    Object.assign(blog, req.body);
+    if (isAdmin && req.body.isPublished && !blog.publishedAt) {
+        blog.publishedAt = new Date();
+        blog.status = "published";
+    }
+    if (isAuthor && !isAdmin && blog.status === 'rejected') {
+        blog.status = 'pending';
+        blog.rejectionReason = '';
+    }
+
+    await blog.save();
     return successResponse(res, 200, "Blog updated", { blog });
+});
+
+export const requestDeleteBlog = asyncHandler(async (req, res) => {
+    const blog = await Blog.findById(req.params.id);
+    if (!blog) return errorResponse(res, 404, "Blog not found");
+    if (blog.author.toString() !== req.user.id.toString()) return errorResponse(res, 403, "Not authorized");
+
+    blog.deleteRequest = {
+        requestedAt: new Date(),
+        reason: req.body.reason || "User requested deletion"
+    };
+    await blog.save();
+
+    await Notification.create({
+        title: "Delete Request Submitted",
+        message: `Delete request submitted for "${blog.title}".`,
+        type: "info",
+        user: req.user.id,
+        link: "/user/my-blogs"
+    });
+    
+    await Notification.create({
+        title: "Blog Delete Request",
+        message: `Delete approval request received for "${blog.title}".`,
+        type: "system",
+        link: "/admin/moderation"
+    });
+
+    return successResponse(res, 200, "Delete request submitted");
 });
 
 export const deleteBlog = asyncHandler(async (req, res) => {
@@ -259,6 +346,138 @@ export const adminGetBlog = asyncHandler(async (req, res) => {
     const blog = await Blog.findById(req.params.id).populate(populateAuthor);
     if (!blog) return errorResponse(res, 404, "Blog not found");
     return successResponse(res, 200, "Blog fetched", { blog });
+});
+
+// ============ ADMIN MODERATION ============
+
+export const adminGetModerationRequests = asyncHandler(async (req, res) => {
+    const newBlogs = await Blog.find({ status: "pending" }).populate(populateAuthor).sort("-createdAt");
+    const editRequests = await Blog.find({ editRequest: { $exists: true, $ne: null } }).populate(populateAuthor).sort("-editRequest.requestedAt");
+    const deleteRequests = await Blog.find({ deleteRequest: { $exists: true, $ne: null } }).populate(populateAuthor).sort("-deleteRequest.requestedAt");
+
+    return successResponse(res, 200, "Moderation requests fetched", { newBlogs, editRequests, deleteRequests });
+});
+
+export const adminApproveBlog = asyncHandler(async (req, res) => {
+    const blog = await Blog.findById(req.params.id);
+    if (!blog) return errorResponse(res, 404, "Blog not found");
+
+    blog.status = "published";
+    blog.isPublished = true;
+    blog.publishedAt = new Date();
+    blog.approvedBy = req.user.id;
+    blog.approvedAt = new Date();
+    blog.rejectionReason = "";
+    await blog.save();
+
+    await Notification.create({
+        title: "Blog Approved",
+        message: `Your blog "${blog.title}" has been approved and published.`,
+        type: "success",
+        user: blog.author,
+        link: `/blogs/${blog.slug}`
+    });
+
+    return successResponse(res, 200, "Blog approved", { blog });
+});
+
+export const adminRejectBlog = asyncHandler(async (req, res) => {
+    const blog = await Blog.findById(req.params.id);
+    if (!blog) return errorResponse(res, 404, "Blog not found");
+
+    blog.status = "rejected";
+    blog.rejectionReason = req.body.reason || "Did not meet community guidelines.";
+    await blog.save();
+
+    await Notification.create({
+        title: "Blog Rejected",
+        message: `Your blog submission "${blog.title}" was rejected. Reason: ${blog.rejectionReason}`,
+        type: "error",
+        user: blog.author,
+        link: `/user/my-blogs`
+    });
+
+    return successResponse(res, 200, "Blog rejected", { blog });
+});
+
+export const adminApproveEdit = asyncHandler(async (req, res) => {
+    const blog = await Blog.findById(req.params.id);
+    if (!blog || !blog.editRequest) return errorResponse(res, 404, "Blog or edit request not found");
+
+    const newSlug = blog.editRequest.title !== blog.title ? await generateUniqueSlug(Blog, blog.editRequest.title, blog._id) : blog.slug;
+
+    Object.assign(blog, blog.editRequest, { slug: newSlug });
+    blog.editRequest = undefined;
+    await blog.save();
+
+    await Notification.create({
+        title: "Blog Update Approved",
+        message: `Your update request for "${blog.title}" has been approved.`,
+        type: "success",
+        user: blog.author,
+        link: `/blogs/${blog.slug}`
+    });
+
+    return successResponse(res, 200, "Edit request approved", { blog });
+});
+
+export const adminRejectEdit = asyncHandler(async (req, res) => {
+    const blog = await Blog.findById(req.params.id);
+    if (!blog || !blog.editRequest) return errorResponse(res, 404, "Blog or edit request not found");
+
+    blog.editRequest = undefined;
+    await blog.save();
+
+    await Notification.create({
+        title: "Blog Update Rejected",
+        message: `Your update request for "${blog.title}" was rejected.`,
+        type: "error",
+        user: blog.author,
+        link: `/user/my-blogs`
+    });
+
+    return successResponse(res, 200, "Edit request rejected", { blog });
+});
+
+export const adminApproveDelete = asyncHandler(async (req, res) => {
+    const blog = await Blog.findById(req.params.id);
+    if (!blog || !blog.deleteRequest) return errorResponse(res, 404, "Blog or delete request not found");
+
+    await Blog.findByIdAndDelete(req.params.id);
+
+    await Notification.create({
+        title: "Blog Deleted",
+        message: `Your blog "${blog.title}" has been successfully deleted.`,
+        type: "success",
+        user: blog.author
+    });
+
+    return successResponse(res, 200, "Delete request approved and blog deleted");
+});
+
+export const adminRejectDelete = asyncHandler(async (req, res) => {
+    const blog = await Blog.findById(req.params.id);
+    if (!blog || !blog.deleteRequest) return errorResponse(res, 404, "Blog or delete request not found");
+
+    blog.deleteRequest = undefined;
+    await blog.save();
+
+    await Notification.create({
+        title: "Blog Delete Rejected",
+        message: `Your request to delete "${blog.title}" was rejected.`,
+        type: "error",
+        user: blog.author,
+        link: `/user/my-blogs`
+    });
+
+    return successResponse(res, 200, "Delete request rejected", { blog });
+});
+
+// ============ USER BLOGS ============
+
+export const getUserBlogs = asyncHandler(async (req, res) => {
+    const blogs = await Blog.find({ author: req.user.id }).sort("-createdAt");
+    return successResponse(res, 200, "User blogs fetched", { blogs });
 });
 
 // ============ INTERACTIONS ============

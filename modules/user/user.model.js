@@ -46,6 +46,10 @@ const userSchema = new mongoose.Schema(
             default: "",
             alias: "avatarUrl"
         },
+        coverImage: {
+            type: String,
+            default: ""
+        },
         bio: {
             type: String,
             default: "",

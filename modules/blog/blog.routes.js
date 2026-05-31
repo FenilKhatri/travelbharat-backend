@@ -1,7 +1,8 @@
 import express from "express";
 import {
     getAllBlogs, getFeaturedBlogs, getPopularBlogs, getBlogBySlug, getRelatedBlogs, getBlogsByCategory, getBlogsByTag, getBlogCategories, getBlogTags,
-    createBlog, updateBlog, deleteBlog, adminGetAllBlogs, adminGetBlog,
+    createBlog, updateBlog, deleteBlog, requestDeleteBlog, adminGetAllBlogs, adminGetBlog,
+    adminGetModerationRequests, adminApproveBlog, adminRejectBlog, adminApproveEdit, adminRejectEdit, adminApproveDelete, adminRejectDelete, getUserBlogs,
     addComment, getComments, deleteComment, toggleLike, toggleSaveBlog, getSavedBlogs, incrementBlogViews
 } from "./blog.controller.js";
 import { protect } from "../../common/middlewares/auth.middleware.js";
@@ -31,10 +32,21 @@ router.delete("/comments/:id", protect, deleteComment);
 router.post("/:id/like", protect, toggleLike);
 router.post("/:blogId/save", protect, toggleSaveBlog);
 router.get("/user/saved", protect, getSavedBlogs);
+router.get("/user/my-blogs", protect, getUserBlogs);
 router.post("/create", protect, createBlog); // Allow authenticated users to create blogs
+router.put("/:id", protect, updateBlog); // Allow users to update/edit
+router.post("/:id/request-delete", protect, requestDeleteBlog); // Allow users to request deletion
 
 // Admin
 router.use(protect, authorizeRoles(ROLES.ADMIN));
+router.get("/admin/moderation/requests", adminGetModerationRequests);
+router.put("/admin/moderation/:id/approve", adminApproveBlog);
+router.put("/admin/moderation/:id/reject", adminRejectBlog);
+router.put("/admin/moderation/:id/approve-edit", adminApproveEdit);
+router.put("/admin/moderation/:id/reject-edit", adminRejectEdit);
+router.put("/admin/moderation/:id/approve-delete", adminApproveDelete);
+router.put("/admin/moderation/:id/reject-delete", adminRejectDelete);
+
 router.get("/admin/all", adminGetAllBlogs);
 router.get("/admin/:id", adminGetBlog);
 router.post("/admin/create", createBlog);

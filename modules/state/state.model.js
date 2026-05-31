@@ -114,6 +114,10 @@ const stateSchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
+        saveCount: {
+            type: Number,
+            default: 0,
+        },
         seo: {
             metaTitle: { type: String, default: "" },
             metaDescription: { type: String, default: "" },

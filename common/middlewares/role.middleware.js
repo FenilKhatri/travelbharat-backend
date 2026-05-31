@@ -1,6 +1,5 @@
 import { errorResponse } from "../utils/responseHandler.utils.js";
 
-// Remove caregiver references, simplified for TravelBharat
 export const authorizeRoles = (...roles) => {
     return (req, res, next) => {
         const userRole = req.user.role?.toLowerCase();

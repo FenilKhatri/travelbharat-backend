@@ -144,6 +144,46 @@ const blogSchema = new mongoose.Schema(
             default: false,
         },
 
+        status: {
+            type: String,
+            enum: ["draft", "pending", "published", "rejected"],
+            default: "pending",
+            index: true,
+        },
+
+        rejectionReason: {
+            type: String,
+            default: "",
+        },
+
+        approvedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+        },
+
+        approvedAt: {
+            type: Date,
+        },
+
+        editRequest: {
+            requestedAt: Date,
+            title: String,
+            content: String,
+            excerpt: String,
+            category: String,
+            tags: [String],
+            images: {
+                hero: String,
+                thumbnail: String,
+                gallery: [String]
+            }
+        },
+
+        deleteRequest: {
+            requestedAt: Date,
+            reason: String,
+        },
+
         publishedAt: {
             type: Date,
         },
