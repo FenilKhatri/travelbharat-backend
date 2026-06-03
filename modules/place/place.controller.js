@@ -87,7 +87,7 @@ export const getPlacesByCity = asyncHandler(async (req, res) => {
         .sort("-priority -rating")
         .skip((page - 1) * limit)
         .limit(parseInt(limit))
-        .select("name slug images.thumbnail category rating reviewCount entryFee timings duration");
+        .select("name slug images.thumbnail category rating reviewCount description entryFee timings duration");
 
     return successResponse(res, 200, "Places fetched", {
         places, city: { name: city.name, slug: city.slug },

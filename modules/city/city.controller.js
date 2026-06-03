@@ -44,7 +44,7 @@ export const getCitiesByState = asyncHandler(async (req, res) => {
 
     const cities = await City.find({ stateId: state._id, isActive: true })
         .sort("-priority")
-        .select("name slug tagline images.thumbnail totalPlaces bestTimeToVisit");
+        .select("name slug tagline description images.thumbnail totalPlaces bestTimeToVisit");
 
     return successResponse(res, 200, "Cities fetched", { cities, state: { name: state.name, slug: state.slug } });
 });
@@ -52,7 +52,7 @@ export const getCitiesByState = asyncHandler(async (req, res) => {
 // Get city by slug
 export const getCityBySlug = asyncHandler(async (req, res) => {
     const city = await City.findOne({ slug: req.params.citySlug, isActive: true })
-        .populate("stateId", "name slug");
+        .populate("stateId", "name slug languages travelTips");
 
     if (!city) return errorResponse(res, 404, "City not found");
     return successResponse(res, 200, "City fetched", { city });
