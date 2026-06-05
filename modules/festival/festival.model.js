@@ -79,6 +79,10 @@ const festivalSchema = new mongoose.Schema(
             default: 0,
             index: true,
         },
+        likeCount: {
+            type: Number,
+            default: 0,
+        },
         seo: {
             metaTitle: { type: String, default: "" },
             metaDescription: { type: String, default: "" },

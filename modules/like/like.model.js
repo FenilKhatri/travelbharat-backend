@@ -10,7 +10,7 @@ const likeSchema = new mongoose.Schema(
         },
         entityType: {
             type: String,
-            enum: ["state", "city", "destination", "blog"],
+            enum: ["state", "city", "destination", "blog", "festival"],
             required: true,
         },
         entityId: {
@@ -21,7 +21,7 @@ const likeSchema = new mongoose.Schema(
         entityModel: {
             type: String,
             required: true,
-            enum: ["State", "City", "TouristPlace", "Blog"],
+            enum: ["State", "City", "TouristPlace", "Blog", "Festival"],
         }
     },
     {

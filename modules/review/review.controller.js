@@ -9,7 +9,8 @@ import Notification from "../notification/notification.model.js";
 // Get reviews for a place
 export const getPlaceReviews = asyncHandler(async (req, res) => {
     const { placeId } = req.params;
-    const { page = 1, limit = 10, sort = "-createdAt" } = req.query;
+    const { page = 1, limit = 10 } = req.query;
+    const sort = req.query.sort || "-createdAt";
 
     const query = { placeId, isActive: true };
     const total = await Review.countDocuments(query);

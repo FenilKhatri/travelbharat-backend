@@ -4,12 +4,13 @@ import SavedItem from "./savedItem.model.js";
 import TouristPlace from "../place/place.model.js";
 import City from "../city/city.model.js";
 import State from "../state/state.model.js";
+import Festival from "../festival/festival.model.js";
 
 export const toggleSaveItem = asyncHandler(async (req, res) => {
     const { itemId, itemType } = req.body;
     const userId = req.user.id;
 
-    if (!["place", "city", "state"].includes(itemType)) {
+    if (!["place", "city", "state", "festival"].includes(itemType)) {
         return errorResponse(res, 400, "Invalid item type");
     }
 
@@ -22,6 +23,7 @@ export const toggleSaveItem = asyncHandler(async (req, res) => {
         if (itemType === 'place') await TouristPlace.findByIdAndUpdate(itemId, { $inc: { saveCount: -1 } }).catch(()=>null);
         if (itemType === 'city') await City.findByIdAndUpdate(itemId, { $inc: { saveCount: -1 } }).catch(()=>null);
         if (itemType === 'state') await State.findByIdAndUpdate(itemId, { $inc: { saveCount: -1 } }).catch(()=>null);
+        if (itemType === 'festival') await Festival.findByIdAndUpdate(itemId, { $inc: { saveCount: -1 } }).catch(()=>null);
 
         return successResponse(res, 200, "Item removed from saved", { isSaved: false });
     } else {
@@ -31,6 +33,7 @@ export const toggleSaveItem = asyncHandler(async (req, res) => {
         if (itemType === 'place') await TouristPlace.findByIdAndUpdate(itemId, { $inc: { saveCount: 1 } }).catch(()=>null);
         if (itemType === 'city') await City.findByIdAndUpdate(itemId, { $inc: { saveCount: 1 } }).catch(()=>null);
         if (itemType === 'state') await State.findByIdAndUpdate(itemId, { $inc: { saveCount: 1 } }).catch(()=>null);
+        if (itemType === 'festival') await Festival.findByIdAndUpdate(itemId, { $inc: { saveCount: 1 } }).catch(()=>null);
 
         return successResponse(res, 200, "Item saved", { isSaved: true });
     }

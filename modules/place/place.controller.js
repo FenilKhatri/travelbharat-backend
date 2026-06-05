@@ -12,9 +12,9 @@ import Notification from "../notification/notification.model.js";
 export const getAllPlaces = asyncHandler(async (req, res) => {
     const {
         search, stateId, cityId, category, budget, tripType,
-        featured, trending, page = 1, limit = ITEMS_PER_PAGE,
-        sort = "-priority"
+        featured, trending, page = 1, limit = ITEMS_PER_PAGE
     } = req.query;
+    const sort = req.query.sort || "-priority";
 
     const query = { isActive: true };
     if (search) query.name = { $regex: search, $options: "i" };

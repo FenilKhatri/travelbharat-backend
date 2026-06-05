@@ -6,16 +6,36 @@ import Notification from "../notification/notification.model.js";
 
 // Get user's trips
 export const getMyTrips = asyncHandler(async (req, res) => {
-    const trips = await SavedTrip.find({ userId: req.user.id })
+    let trips = await SavedTrip.find({ userId: req.user.id })
         .populate("places.placeId", "name slug heroImage images category stateId cityId")
         .sort("-updatedAt");
+
+    const now = new Date();
+
+    // Dynamically update status based on dates
+    trips = await Promise.all(trips.map(async (trip) => {
+        if (trip.status === "cancelled" || trip.status === "draft") return trip;
+
+        let newStatus = trip.status;
+        if (trip.startDate && trip.endDate) {
+            if (now < trip.startDate) newStatus = "upcoming";
+            else if (now >= trip.startDate && now <= trip.endDate) newStatus = "ongoing";
+            else newStatus = "completed";
+        }
+
+        if (newStatus !== trip.status) {
+            trip.status = newStatus;
+            await trip.save({ validateBeforeSave: false });
+        }
+        return trip;
+    }));
 
     return successResponse(res, 200, "Trips fetched", { trips });
 });
 
 // Get single trip
 export const getTrip = asyncHandler(async (req, res) => {
-    const trip = await SavedTrip.findOne({ _id: req.params.id, userId: req.user.id })
+    let trip = await SavedTrip.findOne({ _id: req.params.id, userId: req.user.id })
         .populate({
             path: "places.placeId",
             populate: [
@@ -25,6 +45,20 @@ export const getTrip = asyncHandler(async (req, res) => {
         });
 
     if (!trip) return errorResponse(res, 404, "Trip not found");
+
+    const now = new Date();
+    if (trip.status !== "cancelled" && trip.status !== "draft" && trip.startDate && trip.endDate) {
+        let newStatus = trip.status;
+        if (now < trip.startDate) newStatus = "upcoming";
+        else if (now >= trip.startDate && now <= trip.endDate) newStatus = "ongoing";
+        else newStatus = "completed";
+
+        if (newStatus !== trip.status) {
+            trip.status = newStatus;
+            await trip.save({ validateBeforeSave: false });
+        }
+    }
+
     return successResponse(res, 200, "Trip fetched", { trip });
 });
 

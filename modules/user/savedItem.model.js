@@ -15,7 +15,7 @@ const savedItemSchema = new mongoose.Schema(
         },
         itemType: {
             type: String,
-            enum: ["place", "city", "state"], // blogs use SavedBlog currently, but we could add it
+            enum: ["place", "city", "state", "festival"], // blogs use SavedBlog currently, but we could add it
             required: true,
             index: true,
         },

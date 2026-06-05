@@ -127,7 +127,7 @@ const citySchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
-        saveCount: {
+        likeCount: {
             type: Number,
             default: 0,
         },
@@ -144,6 +144,16 @@ const citySchema = new mongoose.Schema(
 
 // Compound unique index: slug must be unique within a state
 citySchema.index({ slug: 1, stateId: 1 }, { unique: true });
+
+// Virtual for destinations
+citySchema.virtual("destinations", {
+    ref: "TouristPlace",
+    localField: "_id",
+    foreignField: "cityId",
+});
+
+citySchema.set("toObject", { virtuals: true });
+citySchema.set("toJSON", { virtuals: true });
 
 citySchema.pre("validate", function (next) {
     if (this.isModified("name") && !this.slug) {

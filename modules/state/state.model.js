@@ -114,7 +114,7 @@ const stateSchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
-        saveCount: {
+        likeCount: {
             type: Number,
             default: 0,
         },

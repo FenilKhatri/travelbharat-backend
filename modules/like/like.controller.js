@@ -5,12 +5,14 @@ import State from "../state/state.model.js";
 import City from "../city/city.model.js";
 import TouristPlace from "../place/place.model.js";
 import Blog from "../blog/blog.model.js";
-
+import Festival from "../festival/festival.model.js";
+import Notification from "../notification/notification.model.js";
 const MODEL_MAP = {
     state: State,
     city: City,
     destination: TouristPlace,
     blog: Blog,
+    festival: Festival,
 };
 
 const MODEL_NAME_MAP = {
@@ -18,6 +20,7 @@ const MODEL_NAME_MAP = {
     city: "City",
     destination: "TouristPlace",
     blog: "Blog",
+    festival: "Festival",
 };
 
 export const toggleLike = asyncHandler(async (req, res) => {
@@ -67,6 +70,15 @@ export const toggleLike = asyncHandler(async (req, res) => {
              entityExists.likes += 1;
         }
         await entityExists.save();
+
+        await Notification.create({
+            user: req.user.id,
+            title: "Item Liked",
+            message: `You have successfully liked ${entityExists.name || entityExists.title}. You can find it in your liked items.`,
+            type: "system",
+            link: "/user/likes"
+        });
+
         return successResponse(res, 200, "Like added", { isLiked: true });
     }
 });
@@ -81,4 +93,21 @@ export const getLikedItems = asyncHandler(async (req, res) => {
         .sort("-createdAt");
 
     return successResponse(res, 200, "Liked items fetched", { likes });
+});
+
+export const checkLikeStatus = asyncHandler(async (req, res) => {
+    const { entityType, entityId } = req.params;
+    const userId = req.user.id;
+
+    if (!entityType || !entityId) {
+        return errorResponse(res, 400, "Entity type and ID are required");
+    }
+
+    const existingLike = await UniversalLike.findOne({
+        userId,
+        entityType,
+        entityId,
+    });
+
+    return successResponse(res, 200, "Checked status", { isLiked: !!existingLike });
 });

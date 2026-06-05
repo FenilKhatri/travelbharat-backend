@@ -325,7 +325,7 @@ const placeSchema = new mongoose.Schema(
             default: 0,
         },
 
-        saveCount: {
+        likeCount: {
             type: Number,
             default: 0,
         },
