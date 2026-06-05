@@ -69,18 +69,18 @@ app.get("/api/health", (req, res) => {
     });
 });
 
+app.get("/", (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: "TravelBharat API is running successfully"
+    });
+});
+
 // 404 handler
 app.use((req, res) => {
     res.status(404).json({
         success: false,
         message: `Route ${req.originalUrl} not found`,
-    });
-});
-
-app.get("/", (req, res) => {
-    res.status(200).json({
-        success: true,
-        message: "TravelBharat API is running successfully"
     });
 });
 
