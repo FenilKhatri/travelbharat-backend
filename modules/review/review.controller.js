@@ -4,7 +4,7 @@ import Review from "./review.model.js";
 import TouristPlace from "../place/place.model.js";
 import Notification from "../notification/notification.model.js";
 
-// ============ PUBLIC ============
+//  PUBLIC 
 
 // Get reviews for a place
 export const getPlaceReviews = asyncHandler(async (req, res) => {
@@ -34,7 +34,7 @@ export const getPlaceReviews = asyncHandler(async (req, res) => {
     });
 });
 
-// ============ USER ============
+//  USER 
 
 // Create review (authenticated user)
 export const createReview = asyncHandler(async (req, res) => {
@@ -111,7 +111,16 @@ export const getMyReviews = asyncHandler(async (req, res) => {
     return successResponse(res, 200, "Your reviews fetched", { reviews });
 });
 
-// ============ ADMIN ============
+//  ADMIN 
+
+export const adminGetReview = asyncHandler(async (req, res) => {
+    const review = await Review.findById(req.params.id)
+        .populate("userId", "name email profileImage")
+        .populate("placeId", "name slug images.thumbnail");
+
+    if (!review) return errorResponse(res, 404, "Review not found");
+    return successResponse(res, 200, "Review fetched", { review });
+});
 
 export const adminGetAllReviews = asyncHandler(async (req, res) => {
     const { status, placeId, page = 1, limit = 20 } = req.query;
@@ -176,7 +185,7 @@ export const adminDeleteReview = asyncHandler(async (req, res) => {
     return successResponse(res, 200, "Review deleted");
 });
 
-// ============ HELPER ============
+//  HELPER 
 
 async function updatePlaceRating(placeId) {
     const stats = await Review.aggregate([

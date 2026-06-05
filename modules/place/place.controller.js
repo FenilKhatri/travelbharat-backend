@@ -7,7 +7,7 @@ import City from "../city/city.model.js";
 import State from "../state/state.model.js";
 import Notification from "../notification/notification.model.js";
 
-// ============ PUBLIC ============
+//  PUBLIC 
 
 export const getAllPlaces = asyncHandler(async (req, res) => {
     const {
@@ -128,7 +128,7 @@ export const getPlaceCategories = asyncHandler(async (req, res) => {
     return successResponse(res, 200, "Categories fetched", { categories });
 });
 
-// ============ ADMIN ============
+//  ADMIN 
 
 export const createPlace = asyncHandler(async (req, res) => {
     const slug = await generateUniqueSlug(TouristPlace, req.body.name);
@@ -193,5 +193,12 @@ export const adminGetPlace = asyncHandler(async (req, res) => {
         .populate("stateId", "name slug")
         .populate("cityId", "name slug");
     if (!place) return errorResponse(res, 404, "Place not found");
+
+    // Backfill createdAt for legacy documents
+    if (!place.createdAt && place.updatedAt) {
+        place.createdAt = place.updatedAt;
+        await place.save({ validateBeforeSave: false });
+    }
+
     return successResponse(res, 200, "Place fetched", { place });
 });

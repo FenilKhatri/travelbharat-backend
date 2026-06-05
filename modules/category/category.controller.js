@@ -5,7 +5,7 @@ import Category from "./category.model.js";
 import TouristPlace from "../place/place.model.js";
 import Notification from "../notification/notification.model.js";
 
-// ============ PUBLIC ============
+//  PUBLIC 
 
 // Get all categories with place count
 export const getAllCategories = asyncHandler(async (req, res) => {
@@ -52,7 +52,7 @@ export const getCategoryBySlug = asyncHandler(async (req, res) => {
     });
 });
 
-// ============ ADMIN ============
+//  ADMIN 
 
 // Create category
 export const createCategory = asyncHandler(async (req, res) => {

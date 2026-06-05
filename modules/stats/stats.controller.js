@@ -7,13 +7,16 @@ import SavedTrip from "../trip/trip.model.js";
 import UniversalLike from "../like/like.model.js";
 import Review from "../review/review.model.js";
 import Blog from "../blog/blog.model.js";
+import Festival from "../festival/festival.model.js";
+
 // GET /api/stats/public — aggregate counts for public display
 export const getPublicStats = asyncHandler(async (req, res) => {
-    const [states, cities, destinations, experiences] = await Promise.all([
+    const [states, cities, destinations, experiences, festivals] = await Promise.all([
         State.countDocuments({ isActive: true }),
         City.countDocuments({ isActive: true }),
         TouristPlace.countDocuments({ isActive: true }),
         TouristPlace.countDocuments({ isActive: true, category: { $in: ["heritage", "temple", "religious", "museum", "fort", "palace"] } }),
+        Festival.countDocuments({ isActive: true }),
     ]);
 
     return successResponse(res, 200, "Public stats fetched", {
@@ -21,6 +24,7 @@ export const getPublicStats = asyncHandler(async (req, res) => {
         cities,
         destinations,
         experiences,
+        festivals,
     });
 });
 

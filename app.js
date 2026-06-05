@@ -77,6 +77,13 @@ app.use((req, res) => {
     });
 });
 
+app.get("/", (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: "TravelBharat API is running successfully"
+    });
+});
+
 // Global error handler
 app.use((err, req, res, next) => {
     console.error("ERROR:", err);

@@ -14,7 +14,7 @@ const populateAuthor = {
     select: "name username profileImage bio",
 };
 
-// ============ PUBLIC ============
+//  PUBLIC 
 
 export const getAllBlogs = asyncHandler(async (req, res) => {
     const { search, category, tag, stateId, featured, page = 1, limit = ITEMS_PER_PAGE } = req.query;
@@ -80,10 +80,10 @@ export const getBlogBySlug = asyncHandler(async (req, res) => {
             { tags: { $in: blog.tags } }
         ]
     })
-    .populate(populateAuthor)
-    .sort("-priority -publishedAt")
-    .limit(3)
-    .select("-content -travelTips -faqs");
+        .populate(populateAuthor)
+        .sort("-priority -publishedAt")
+        .limit(3)
+        .select("-content -travelTips -faqs");
 
     return successResponse(res, 200, "Blog fetched", {
         blog,
@@ -104,10 +104,10 @@ export const getRelatedBlogs = asyncHandler(async (req, res) => {
             { tags: { $in: blog.tags } }
         ]
     })
-    .populate(populateAuthor)
-    .sort("-priority -publishedAt")
-    .limit(6)
-    .select("-content -travelTips -faqs");
+        .populate(populateAuthor)
+        .sort("-priority -publishedAt")
+        .limit(6)
+        .select("-content -travelTips -faqs");
 
     return successResponse(res, 200, "Related blogs fetched", { blogs: relatedBlogs });
 });
@@ -118,7 +118,7 @@ export const getBlogsByCategory = asyncHandler(async (req, res) => {
 
     const query = { isActive: true, isPublished: true, category };
     const total = await Blog.countDocuments(query);
-    
+
     const blogs = await Blog.find(query)
         .populate(populateAuthor)
         .sort("-priority -publishedAt")
@@ -138,7 +138,7 @@ export const getBlogsByTag = asyncHandler(async (req, res) => {
 
     const query = { isActive: true, isPublished: true, tags: { $in: [tag] } };
     const total = await Blog.countDocuments(query);
-    
+
     const blogs = await Blog.find(query)
         .populate(populateAuthor)
         .sort("-priority -publishedAt")
@@ -156,7 +156,7 @@ export const incrementBlogViews = asyncHandler(async (req, res) => {
     const { slug } = req.params;
     // Basic IP-based prevention of refresh abuse using cookies
     const viewedBlogs = req.cookies?.viewedBlogs ? JSON.parse(req.cookies.viewedBlogs) : [];
-    
+
     if (!viewedBlogs.includes(slug)) {
         await Blog.findOneAndUpdate(
             { slug, isActive: true, isPublished: true },
@@ -166,7 +166,7 @@ export const incrementBlogViews = asyncHandler(async (req, res) => {
         res.cookie('viewedBlogs', JSON.stringify(viewedBlogs), { maxAge: 24 * 60 * 60 * 1000, httpOnly: true });
         return successResponse(res, 200, "View incremented");
     }
-    
+
     return successResponse(res, 200, "Already viewed");
 });
 
@@ -190,7 +190,7 @@ export const getBlogTags = asyncHandler(async (req, res) => {
     return successResponse(res, 200, "Blog tags fetched", { tags });
 });
 
-// ============ ADMIN / CRUD ============
+//  ADMIN / CRUD 
 
 export const createBlog = asyncHandler(async (req, res) => {
     let slug = req.body.slug;
@@ -256,7 +256,7 @@ export const updateBlog = asyncHandler(async (req, res) => {
             ...req.body
         };
         await blog.save();
-        
+
         await Notification.create({
             title: "Update Request Submitted",
             message: `Your update request for "${blog.title}" has been submitted.`,
@@ -306,7 +306,7 @@ export const requestDeleteBlog = asyncHandler(async (req, res) => {
         user: req.user.id,
         link: "/user/my-blogs"
     });
-    
+
     await Notification.create({
         title: "Blog Delete Request",
         message: `Delete approval request received for "${blog.title}".`,
@@ -348,7 +348,7 @@ export const adminGetBlog = asyncHandler(async (req, res) => {
     return successResponse(res, 200, "Blog fetched", { blog });
 });
 
-// ============ ADMIN MODERATION ============
+//  ADMIN MODERATION 
 
 export const adminGetModerationRequests = asyncHandler(async (req, res) => {
     const newBlogs = await Blog.find({ status: "pending" }).populate(populateAuthor).sort("-createdAt");
@@ -473,14 +473,14 @@ export const adminRejectDelete = asyncHandler(async (req, res) => {
     return successResponse(res, 200, "Delete request rejected", { blog });
 });
 
-// ============ USER BLOGS ============
+//  USER BLOGS 
 
 export const getUserBlogs = asyncHandler(async (req, res) => {
     const blogs = await Blog.find({ author: req.user.id }).sort("-createdAt");
     return successResponse(res, 200, "User blogs fetched", { blogs });
 });
 
-// ============ INTERACTIONS ============
+//  INTERACTIONS 
 
 export const addComment = asyncHandler(async (req, res) => {
     const { blogId } = req.params;
@@ -490,16 +490,16 @@ export const addComment = asyncHandler(async (req, res) => {
     const blog = await Blog.findById(blogId);
     if (!blog) return errorResponse(res, 404, "Blog not found");
 
-    const comment = await Comment.create({ 
-        blogId, 
-        text, 
+    const comment = await Comment.create({
+        blogId,
+        text,
         author: {
             userId: req.user.id,
             name: req.user.name,
             profilePic: req.user.profileImage
-        } 
+        }
     });
-    
+
     await Blog.findByIdAndUpdate(blogId, { $inc: { commentCount: 1 } });
 
     await Notification.create({
@@ -514,15 +514,15 @@ export const addComment = asyncHandler(async (req, res) => {
 export const getComments = asyncHandler(async (req, res) => {
     const { blogId } = req.params;
     const { page = 1, limit = 10 } = req.query;
-    
+
     const comments = await Comment.find({ blogId })
         .sort("-createdAt")
         .skip((page - 1) * limit)
         .limit(parseInt(limit));
-        
+
     const total = await Comment.countDocuments({ blogId });
-    
-    return successResponse(res, 200, "Comments fetched", { 
+
+    return successResponse(res, 200, "Comments fetched", {
         comments,
         pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) }
     });
@@ -531,16 +531,16 @@ export const getComments = asyncHandler(async (req, res) => {
 export const deleteComment = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const comment = await Comment.findById(id);
-    
+
     if (!comment) return errorResponse(res, 404, "Comment not found");
-    
+
     if (comment.author.userId.toString() !== req.user.id && req.user.role !== 'admin') {
         return errorResponse(res, 403, "Not authorized to delete this comment");
     }
-    
+
     await Comment.findByIdAndDelete(id);
     await Blog.findByIdAndUpdate(comment.blogId, { $inc: { commentCount: -1 } });
-    
+
     return successResponse(res, 200, "Comment deleted");
 });
 
@@ -554,16 +554,16 @@ export const toggleLike = asyncHandler(async (req, res) => {
     }
 
     const existingLike = await Like.findOne({ referenceId: id, "author.userId": userId, referenceType });
-    
+
     if (existingLike) {
         await Like.findByIdAndDelete(existingLike._id);
         if (referenceType === 'blog') await Blog.findByIdAndUpdate(id, { $inc: { likes: -1 } });
         if (referenceType === 'comment') await Comment.findByIdAndUpdate(id, { $inc: { likes: -1 } });
         return successResponse(res, 200, "Unliked successfully", { isLiked: false });
     } else {
-        await Like.create({ 
-            referenceId: id, 
-            referenceType, 
+        await Like.create({
+            referenceId: id,
+            referenceType,
             author: {
                 userId: req.user.id,
                 name: req.user.name,

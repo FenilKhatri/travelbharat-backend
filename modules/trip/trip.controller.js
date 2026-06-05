@@ -7,6 +7,7 @@ import Notification from "../notification/notification.model.js";
 // Get user's trips
 export const getMyTrips = asyncHandler(async (req, res) => {
     let trips = await SavedTrip.find({ userId: req.user.id })
+        .populate("destinationId", "name slug images category stateId cityId")
         .populate("places.placeId", "name slug heroImage images category stateId cityId")
         .sort("-updatedAt");
 
@@ -36,6 +37,7 @@ export const getMyTrips = asyncHandler(async (req, res) => {
 // Get single trip
 export const getTrip = asyncHandler(async (req, res) => {
     let trip = await SavedTrip.findOne({ _id: req.params.id, userId: req.user.id })
+        .populate("destinationId", "name slug images category stateId cityId overview timings location bestTimeToVisit highlights travelTips")
         .populate({
             path: "places.placeId",
             populate: [
@@ -96,6 +98,31 @@ export const updateTrip = asyncHandler(async (req, res) => {
     );
     if (!trip) return errorResponse(res, 404, "Trip not found");
     return successResponse(res, 200, "Trip updated", { trip });
+});
+
+// Duplicate trip
+export const duplicateTrip = asyncHandler(async (req, res) => {
+    const trip = await SavedTrip.findOne({ _id: req.params.id, userId: req.user.id });
+    if (!trip) return errorResponse(res, 404, "Trip not found");
+
+    const tripData = trip.toObject();
+    delete tripData._id;
+    delete tripData.createdAt;
+    delete tripData.updatedAt;
+    delete tripData.__v;
+    
+    // Strip _ids from nested arrays
+    if (tripData.places) tripData.places.forEach(p => delete p._id);
+    if (tripData.itinerary) tripData.itinerary.forEach(i => delete i._id);
+    if (tripData.expenses) tripData.expenses.forEach(e => delete e._id);
+    if (tripData.gallery) tripData.gallery.forEach(g => delete g._id);
+
+    tripData.name = `${tripData.name} (Copy)`;
+    tripData.status = "draft"; // Reset status for the copy
+
+    const duplicatedTrip = await SavedTrip.create(tripData);
+
+    return successResponse(res, 201, "Trip duplicated", { trip: duplicatedTrip });
 });
 
 // Delete trip
@@ -185,6 +212,22 @@ export const adminGetAllTrips = asyncHandler(async (req, res) => {
     });
 });
 
+// Admin: Get single trip (any user's trip)
+export const adminGetTrip = asyncHandler(async (req, res) => {
+    const trip = await SavedTrip.findById(req.params.id)
+        .populate("userId", "name email profileImage")
+        .populate({
+            path: "places.placeId",
+            populate: [
+                { path: "stateId", select: "name images" },
+                { path: "cityId", select: "name images" }
+            ]
+        });
+
+    if (!trip) return errorResponse(res, 404, "Trip not found");
+    return successResponse(res, 200, "Trip fetched", { trip });
+});
+
 // Admin: Delete any trip
 export const adminDeleteTrip = asyncHandler(async (req, res) => {
     const trip = await SavedTrip.findByIdAndDelete(req.params.id);
@@ -192,9 +235,9 @@ export const adminDeleteTrip = asyncHandler(async (req, res) => {
     return successResponse(res, 200, "Trip deleted by admin");
 });
 
-// =========================
+// =
 // EXPENSES
-// =========================
+// =
 export const addExpense = asyncHandler(async (req, res) => {
     const trip = await SavedTrip.findOne({ _id: req.params.id, userId: req.user.id });
     if (!trip) return errorResponse(res, 404, "Trip not found");
@@ -213,9 +256,9 @@ export const deleteExpense = asyncHandler(async (req, res) => {
     return successResponse(res, 200, "Expense deleted", { trip });
 });
 
-// =========================
+// =
 // ITINERARY
-// =========================
+// =
 export const addItineraryDay = asyncHandler(async (req, res) => {
     const trip = await SavedTrip.findOne({ _id: req.params.id, userId: req.user.id });
     if (!trip) return errorResponse(res, 404, "Trip not found");
@@ -236,9 +279,9 @@ export const deleteItineraryDay = asyncHandler(async (req, res) => {
     return successResponse(res, 200, "Itinerary day deleted", { trip });
 });
 
-// =========================
+// =
 // GALLERY
-// =========================
+// =
 import { uploadToCloudinary } from "../../config/cloudinary.js";
 
 export const uploadGallery = asyncHandler(async (req, res) => {
@@ -249,8 +292,8 @@ export const uploadGallery = asyncHandler(async (req, res) => {
         return errorResponse(res, 400, "No files provided");
     }
 
-    if (trip.gallery.length + req.files.length > 5) {
-        return errorResponse(res, 400, "Maximum 5 files allowed in gallery");
+    if (trip.gallery.length + req.files.length > 10) {
+        return errorResponse(res, 400, "Maximum 10 files allowed in gallery");
     }
 
     const userName = req.user.name ? req.user.name.replace(/[^a-zA-Z0-9]/g, '_') : 'user';
@@ -269,7 +312,7 @@ export const uploadGallery = asyncHandler(async (req, res) => {
     });
 
     const uploadedFiles = await Promise.all(uploadPromises);
-    
+
     trip.gallery.push(...uploadedFiles);
     await trip.save();
 
@@ -285,3 +328,93 @@ export const deleteGalleryItem = asyncHandler(async (req, res) => {
     return successResponse(res, 200, "Gallery item deleted", { trip });
 });
 
+// Mocked AI Generator
+export const generateTripItinerary = asyncHandler(async (req, res) => {
+    const { destinationId, duration, budget, travelStyle, interests, travelers } = req.body;
+
+    if (!destinationId || !duration) {
+        return errorResponse(res, 400, "Destination and duration are required.");
+    }
+
+    const place = await TouristPlace.findById(destinationId).populate("cityId stateId");
+    if (!place) {
+        return errorResponse(res, 404, "Destination not found.");
+    }
+
+    const nearbyAttractions = await TouristPlace.find({
+        cityId: place.cityId._id,
+        _id: { $ne: place._id },
+        isActive: true
+    }).limit(5).select("name images category");
+
+    // Generate Mocked Response
+    const dayWiseItinerary = [];
+    for (let i = 1; i <= duration; i++) {
+        dayWiseItinerary.push({
+            day: i,
+            title: `Day ${i}: Exploring ${place.cityId.name}`,
+            morning: {
+                time: "09:00 AM",
+                activity: i === 1 ? `Visit ${place.name}` : `Discover ${nearbyAttractions[(i-2) % nearbyAttractions.length]?.name || 'Local Markets'}`,
+                description: "Start your day with a guided tour and photography."
+            },
+            afternoon: {
+                time: "01:00 PM",
+                activity: "Local Cuisine & Relaxation",
+                description: "Enjoy traditional food at a popular local restaurant."
+            },
+            evening: {
+                time: "05:00 PM",
+                activity: "Sunset Views & Leisure",
+                description: "Take a stroll, shop for souvenirs, and watch the sunset."
+            }
+        });
+    }
+
+    const recommendedHotels = [
+        { name: `Luxury Stay ${place.cityId.name}`, price: "₹8,000/night", rating: 4.8 },
+        { name: `Comfort Inn ${place.cityId.name}`, price: "₹3,500/night", rating: 4.2 },
+        { name: `Budget Hostel ${place.cityId.name}`, price: "₹1,200/night", rating: 4.0 },
+    ];
+
+    const costBreakdown = {
+        transportation: budget * 0.3,
+        accommodation: budget * 0.4,
+        food: budget * 0.2,
+        activities: budget * 0.1,
+        totalEstimated: budget
+    };
+
+    const weather = {
+        condition: "Sunny with pleasant breeze",
+        temperature: "24°C - 30°C",
+        clothing: "Light cotton clothes, comfortable walking shoes, and sunglasses."
+    };
+
+    const travelEssentials = {
+        packing: ["Sunscreen", "Power Bank", "Water Bottle", "Camera"],
+        safety: "Generally safe. Beware of pickpockets in crowded tourist areas.",
+        customs: "Dress modestly when visiting religious sites."
+    };
+
+    const generatedTrip = {
+        destination: {
+            id: place._id,
+            name: place.name,
+            city: place.cityId.name,
+            state: place.stateId.name,
+            heroImage: place.images?.hero || place.images?.thumbnail || "",
+            overview: place.overview || `A wonderful trip to ${place.name}, ${place.cityId.name}.`,
+            category: place.category,
+            bestTime: place.bestTimeToVisit
+        },
+        itinerary: dayWiseItinerary,
+        nearbyAttractions: nearbyAttractions,
+        recommendedHotels,
+        costBreakdown,
+        weather,
+        travelEssentials
+    };
+
+    return successResponse(res, 200, "Trip itinerary generated successfully", generatedTrip);
+});

@@ -17,6 +17,12 @@ const savedTripSchema = new mongoose.Schema(
             type: String,
             default: "",
         },
+        destinationId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "TouristPlace",
+        },
+        city: String,
+        state: String,
         places: [
             {
                 placeId: {
@@ -34,23 +40,37 @@ const savedTripSchema = new mongoose.Schema(
         endDate: {
             type: Date,
         },
-        totalDays: {
+        duration: {
             type: Number,
             default: 1,
         },
-        totalPerson: {
-            type: Number,
-            default: 1,
+        travelers: {
+            adults: { type: Number, default: 1 },
+            children: { type: Number, default: 0 },
+            seniors: { type: Number, default: 0 },
         },
         budget: {
-            type: String,
-            enum: ["budget", "moderate", "luxury"],
-            default: "moderate",
+            type: Number,
+            default: 0,
         },
         tripType: {
             type: String,
-            enum: ["family", "couple", "solo", "friends", "pilgrim"],
+            enum: ["family", "couple", "solo", "friends", "pilgrim", "group"],
             default: "family",
+        },
+        transportation: {
+            type: String,
+            default: "",
+        },
+        accommodations: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Accommodation"
+            }
+        ],
+        estimatedCost: {
+            type: Number,
+            default: 0,
         },
         notes: {
             type: String,
