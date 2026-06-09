@@ -25,9 +25,10 @@ app.use(mongoSanitize());
 app.use("/uploads", express.static(path.join(process.cwd(), "public", "uploads")));
 
 // CORS
+const frontendUrl = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/$/, "") : null;
 const allowedOrigins = [
     "http://localhost:5173",
-    process.env.FRONTEND_URL,
+    frontendUrl,
 ].filter(Boolean);
 
 app.use(
@@ -36,6 +37,7 @@ app.use(
             if (!origin || allowedOrigins.includes(origin)) {
                 callback(null, true);
             } else {
+                console.error(`CORS Error: Origin ${origin} is not allowed. Allowed origins: ${allowedOrigins.join(', ')}`);
                 callback(new Error("Not allowed by CORS"));
             }
         },
@@ -66,6 +68,13 @@ app.get("/api/health", (req, res) => {
         ok: true,
         message: "TravelBharat API is running!",
         timestamp: new Date().toISOString(),
+    });
+});
+
+app.get("/", (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: "TravelBharat API is running successfully"
     });
 });
 

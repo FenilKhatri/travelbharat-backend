@@ -1,7 +1,7 @@
 import express from "express";
 import {
     getPlaceReviews, createReview, updateReview, deleteOwnReview, getMyReviews,
-    adminGetAllReviews, approveReview, rejectReview, adminRespondToReview, adminDeleteReview
+    adminGetAllReviews, adminGetReview, approveReview, rejectReview, adminRespondToReview, adminDeleteReview
 } from "./review.controller.js";
 import { protect } from "../../common/middlewares/auth.middleware.js";
 import { authorizeRoles } from "../../common/middlewares/role.middleware.js";
@@ -21,6 +21,7 @@ router.delete("/:id", authorizeRoles(ROLES.USER), deleteOwnReview);
 
 // Admin
 router.get("/admin/all", authorizeRoles(ROLES.ADMIN), adminGetAllReviews);
+router.get("/admin/:id", authorizeRoles(ROLES.ADMIN), adminGetReview);
 router.put("/admin/approve/:id", authorizeRoles(ROLES.ADMIN), approveReview);
 router.put("/admin/reject/:id", authorizeRoles(ROLES.ADMIN), rejectReview);
 router.put("/admin/respond/:id", authorizeRoles(ROLES.ADMIN), adminRespondToReview);

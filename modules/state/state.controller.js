@@ -5,7 +5,7 @@ import { ITEMS_PER_PAGE } from "../../common/utils/constants.js";
 import State from "./state.model.js";
 import Notification from "../notification/notification.model.js";
 
-// ============ PUBLIC ============
+//  PUBLIC 
 
 // Get all states (public)
 export const getAllStates = asyncHandler(async (req, res) => {
@@ -56,7 +56,7 @@ export const getStateBySlug = asyncHandler(async (req, res) => {
     return successResponse(res, 200, "State fetched", { state });
 });
 
-// ============ ADMIN ============
+//  ADMIN 
 
 // Create state (admin)
 export const createState = asyncHandler(async (req, res) => {

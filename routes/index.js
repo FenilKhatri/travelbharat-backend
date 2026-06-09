@@ -18,6 +18,7 @@ import notificationRoutes from "../modules/notification/notification.routes.js";
 import categoryRoutes from "../modules/category/category.routes.js";
 import statsRoutes from "../modules/stats/stats.routes.js";
 import savedItemRoutes from "../modules/user/savedItem.routes.js";
+import accommodationRoutes from "../modules/accommodation/accommodation.routes.js";
 
 const router = express.Router();
 
@@ -33,6 +34,7 @@ router.use("/festivals", festivalRoutes);
 router.use("/reviews", reviewRoutes);
 router.use("/categories", categoryRoutes);
 router.use("/stats", statsRoutes);
+router.use("/accommodations", accommodationRoutes);
 
 // User Features
 router.use("/trips", tripRoutes);

@@ -20,9 +20,6 @@ const getTransporter = () => {
     return transporter;
 };
 
-/**
- * Send email using configured SMTP
- */
 export const sendEmail = async ({ to, subject, html, text }) => {
     try {
         const mailOptions = {
@@ -45,9 +42,7 @@ export const sendEmail = async ({ to, subject, html, text }) => {
     }
 };
 
-// ==========================================
 // EMAIL TEMPLATES
-// ==========================================
 
 export const getWelcomeEmail = (name) => ({
     subject: "Welcome to TravelBharat – Explore India State by State! 🇮🇳",

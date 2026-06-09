@@ -13,7 +13,7 @@ import HeroBanner from "./heroBanner.model.js";
 import SiteSetting from "./siteSetting.model.js";
 import Category from "../category/category.model.js";
 
-// ============ DASHBOARD ANALYTICS ============
+//  DASHBOARD ANALYTICS 
 
 export const getDashboardStats = asyncHandler(async (req, res) => {
     const [
@@ -77,7 +77,7 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
     });
 });
 
-// ============ USER MANAGEMENT ============
+//  USER MANAGEMENT 
 
 export const getAllUsers = asyncHandler(async (req, res) => {
     const { search, role, page = 1, limit = 20 } = req.query;
@@ -126,7 +126,7 @@ export const deleteUser = asyncHandler(async (req, res) => {
     return successResponse(res, 200, "User deleted");
 });
 
-// ============ HERO BANNERS ============
+//  HERO BANNERS 
 
 export const getHeroBanners = asyncHandler(async (req, res) => {
     const { page: pageParam } = req.query;
@@ -162,7 +162,7 @@ export const deleteHeroBanner = asyncHandler(async (req, res) => {
     return successResponse(res, 200, "Banner deleted");
 });
 
-// ============ SITE SETTINGS ============
+//  SITE SETTINGS 
 
 export const getSettings = asyncHandler(async (req, res) => {
     const { category } = req.query;
@@ -206,7 +206,7 @@ export const deleteSetting = asyncHandler(async (req, res) => {
     return successResponse(res, 200, "Setting deleted");
 });
 
-// ============ CATEGORIES ============
+//  CATEGORIES 
 
 export const getAllCategories = asyncHandler(async (req, res) => {
     const { type } = req.query;

@@ -6,7 +6,7 @@ import City from "./city.model.js";
 import State from "../state/state.model.js";
 import Notification from "../notification/notification.model.js";
 
-// ============ PUBLIC ============
+//  PUBLIC 
 
 // Get all cities (with optional state filter)
 export const getAllCities = asyncHandler(async (req, res) => {
@@ -70,7 +70,7 @@ export const getFeaturedCities = asyncHandler(async (req, res) => {
     return successResponse(res, 200, "Featured cities fetched", { cities });
 });
 
-// ============ ADMIN ============
+//  ADMIN 
 
 export const createCity = asyncHandler(async (req, res) => {
     const slug = await generateUniqueSlug(City, req.body.name);
@@ -79,7 +79,7 @@ export const createCity = asyncHandler(async (req, res) => {
 
     // Update state totalCities count
     await State.findByIdAndUpdate(req.body.stateId, { $inc: { totalCities: 1 } });
-    
+
     await Notification.create({
         title: "New City Added",
         message: `A new city "${city.name}" has been added.`,

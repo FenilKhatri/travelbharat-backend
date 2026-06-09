@@ -35,11 +35,11 @@ export const uploadMultiple = multer({
     limits: { fileSize: 10 * 1024 * 1024 },
 }).array("images", 10);
 
-// Gallery upload (max 5 files, 5MB limit)
+// Gallery upload (max 10 files, 25MB limit)
 export const uploadGallery = multer({
     storage,
     fileFilter,
-    limits: { fileSize: 5 * 1024 * 1024 },
-}).array("gallery", 5);
+    limits: { fileSize: 25 * 1024 * 1024 },
+}).array("gallery", 10);
 
 export default multer({ storage, fileFilter });

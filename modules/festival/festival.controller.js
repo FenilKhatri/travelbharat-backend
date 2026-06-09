@@ -5,7 +5,7 @@ import { ITEMS_PER_PAGE } from "../../common/utils/constants.js";
 import Festival from "./festival.model.js";
 import State from "../state/state.model.js";
 
-// ============ PUBLIC ============
+//  PUBLIC 
 
 export const getAllFestivals = asyncHandler(async (req, res) => {
     const { search, stateId, month, category, featured, page = 1, limit = ITEMS_PER_PAGE } = req.query;
@@ -63,7 +63,7 @@ export const getFestivalsByState = asyncHandler(async (req, res) => {
     });
 });
 
-// ============ ADMIN ============
+//  ADMIN 
 
 export const createFestival = asyncHandler(async (req, res) => {
     const slug = await generateUniqueSlug(Festival, req.body.name);
