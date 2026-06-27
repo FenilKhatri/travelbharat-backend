@@ -12,7 +12,8 @@ import {
     adminRespondToReview, 
     adminDeleteReview 
 } from "./review.controller.js";
-import { protect, restrictTo } from "../../common/middlewares/auth.middleware.js";
+import { protect } from "../../common/middlewares/auth.middleware.js";
+import { authorizeRoles } from "../../common/middlewares/role.middleware.js";
 
 const router = express.Router();
 
@@ -27,7 +28,7 @@ router.put("/:id", updateReview);
 router.delete("/:id", deleteOwnReview);
 
 // Admin
-router.use(restrictTo("admin"));
+router.use(authorizeRoles("admin"));
 router.get("/admin/all", adminGetAllReviews);
 router.get("/admin/:id", adminGetReview);
 router.patch("/admin/:id/approve", approveReview);

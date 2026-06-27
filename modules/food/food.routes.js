@@ -1,6 +1,7 @@
 import express from "express";
 import { getFoods, getFoodBySlug, createFood, updateFood, deleteFood } from "./food.controller.js";
-import { protect, restrictTo } from "../../common/middlewares/auth.middleware.js";
+import { protect } from "../../common/middlewares/auth.middleware.js";
+import { authorizeRoles } from "../../common/middlewares/role.middleware.js";
 
 const router = express.Router();
 
@@ -10,7 +11,7 @@ router.get("/:slug", getFoodBySlug);
 
 // Admin
 router.use(protect);
-router.use(restrictTo("admin"));
+router.use(authorizeRoles("admin"));
 
 router.post("/", createFood);
 router.put("/:id", updateFood);
