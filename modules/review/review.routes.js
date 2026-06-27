@@ -1,30 +1,38 @@
 import express from "express";
-import {
-    getPlaceReviews, createReview, updateReview, deleteOwnReview, getMyReviews,
-    adminGetAllReviews, adminGetReview, approveReview, rejectReview, adminRespondToReview, adminDeleteReview
+import { 
+    getEntityReviews, 
+    createReview, 
+    updateReview, 
+    deleteOwnReview, 
+    getMyReviews, 
+    adminGetAllReviews, 
+    adminGetReview, 
+    approveReview, 
+    rejectReview, 
+    adminRespondToReview, 
+    adminDeleteReview 
 } from "./review.controller.js";
-import { protect } from "../../common/middlewares/auth.middleware.js";
-import { authorizeRoles } from "../../common/middlewares/role.middleware.js";
-import { ROLES } from "../../common/utils/constants.js";
+import { protect, restrictTo } from "../../common/middlewares/auth.middleware.js";
 
 const router = express.Router();
 
 // Public
-router.get("/place/:placeId", getPlaceReviews);
+router.get("/:entityType/:entityId", getEntityReviews);
 
-// User (authenticated)
+// User
 router.use(protect);
-router.post("/", authorizeRoles(ROLES.USER, ROLES.ADMIN), createReview);
-router.get("/my", authorizeRoles(ROLES.USER, ROLES.ADMIN), getMyReviews);
-router.put("/:id", authorizeRoles(ROLES.USER), updateReview);
-router.delete("/:id", authorizeRoles(ROLES.USER), deleteOwnReview);
+router.get("/user/me", getMyReviews);
+router.post("/", createReview);
+router.put("/:id", updateReview);
+router.delete("/:id", deleteOwnReview);
 
 // Admin
-router.get("/admin/all", authorizeRoles(ROLES.ADMIN), adminGetAllReviews);
-router.get("/admin/:id", authorizeRoles(ROLES.ADMIN), adminGetReview);
-router.put("/admin/approve/:id", authorizeRoles(ROLES.ADMIN), approveReview);
-router.put("/admin/reject/:id", authorizeRoles(ROLES.ADMIN), rejectReview);
-router.put("/admin/respond/:id", authorizeRoles(ROLES.ADMIN), adminRespondToReview);
-router.delete("/admin/:id", authorizeRoles(ROLES.ADMIN), adminDeleteReview);
+router.use(restrictTo("admin"));
+router.get("/admin/all", adminGetAllReviews);
+router.get("/admin/:id", adminGetReview);
+router.patch("/admin/:id/approve", approveReview);
+router.patch("/admin/:id/reject", rejectReview);
+router.patch("/admin/:id/respond", adminRespondToReview);
+router.delete("/admin/:id", adminDeleteReview);
 
 export default router;

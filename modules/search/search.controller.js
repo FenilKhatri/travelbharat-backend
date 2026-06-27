@@ -39,9 +39,10 @@ export const search = asyncHandler(async (req, res) => {
         results.places = await TouristPlace.find({ name: regex, isActive: true })
             .populate("stateId", "name slug")
             .populate("cityId", "name slug")
+            .populate("categoryId", "name slug")
             .sort("-priority -rating")
             .limit(searchLimit)
-            .select("name slug images.thumbnail category rating stateId cityId");
+            .select("name slug images.thumbnail categoryId rating stateId cityId");
     }
 
     if (!type || type === "blogs") {
@@ -53,10 +54,10 @@ export const search = asyncHandler(async (req, res) => {
 
     if (!type || type === "festivals") {
         results.festivals = await Festival.find({ name: regex, isActive: true })
-            .populate("stateId", "name slug")
+            .populate("stateIds", "name slug")
             .sort("-priority")
             .limit(searchLimit)
-            .select("name slug images.thumbnail month stateId");
+            .select("name slug images.thumbnail month stateIds");
     }
 
     return successResponse(res, 200, "Search results", { results, query: q });

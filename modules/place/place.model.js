@@ -1,441 +1,227 @@
 import mongoose from "mongoose";
+import { generateSlug } from "../../common/utils/slug.utils.js";
 
 const placeSchema = new mongoose.Schema(
     {
         name: {
             type: String,
-            required: true,
+            required: [true, "Place name is required"],
             trim: true,
         },
-
         slug: {
             type: String,
             required: true,
             unique: true,
-            lowercase: true,
             index: true,
         },
-
         stateId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "State",
-            required: true,
+            required: [true, "State reference is required"],
             index: true,
         },
-
         cityId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "City",
-            required: true,
+            required: [true, "City reference is required"],
             index: true,
         },
-
         categoryId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Category",
+            required: true,
             index: true,
         },
-
-        // ----------------------
-        // BASIC CONTENT
-        // ----------------------
-
         description: {
             type: String,
-            required: true,
+            required: [true, "Description is required"],
         },
-
         overview: {
             type: String,
-            default: "",
         },
-
         history: {
             type: String,
-            default: "",
         },
-
         legends: {
             type: String,
-            default: "",
         },
-
         whyVisit: {
             type: String,
-            default: "",
         },
-
-        // ----------------------
-        // IMAGES
-        // ----------------------
-
         images: {
-            hero: {
-                type: String,
-                default: "",
-            },
-
-            thumbnail: {
-                type: String,
-                default: "",
-            },
-
+            hero: { url: String, publicId: String, altText: String },
+            thumbnail: { url: String, publicId: String, altText: String },
             gallery: [
-                {
-                    type: String,
-                },
+                { url: String, publicId: String, altText: String }
             ],
         },
-
-        // ----------------------
-        // LOCATION
-        // ----------------------
-
-        location: {
-            address: {
+        address: {
+            type: String,
+        },
+        mapCoordinates: {
+            type: {
                 type: String,
-                default: "",
+                enum: ["Point"],
+                default: "Point",
             },
-
             coordinates: {
-                lat: {
-                    type: Number,
-                    default: 0,
-                },
-
-                lng: {
-                    type: Number,
-                    default: 0,
-                },
+                type: [Number], // [longitude, latitude]
             },
         },
-
-        // ----------------------
-        // VISITOR INFORMATION
-        // ----------------------
-
         timings: {
             type: String,
-            default: "Open 24 Hours",
         },
-
         closedOn: {
             type: String,
-            default: "Open All Days",
         },
-
         duration: {
-            type: String,
-            default: "",
+            type: String, // e.g., "2-3 hours"
         },
-
         bestTimeToVisit: {
             type: String,
-            default: "",
         },
-
+        seasonalAvailability: {
+            type: String, // e.g., "Open May to November only"
+        },
+        accessibility: [
+            { type: String } // e.g., "Wheelchair Accessible", "Elder Friendly"
+        ],
         entryFee: {
-            indian: {
-                type: String,
-                default: "Free",
-            },
-
-            foreigner: {
-                type: String,
-                default: "Free",
-            },
-
-            camera: {
-                type: String,
-                default: "Free",
-            },
+            indian: { type: String, default: "Free" },
+            foreigner: { type: String, default: "Free" },
+            camera: { type: String, default: "Not Allowed" },
         },
-
-        // ----------------------
-        // QUICK FACTS
-        // ----------------------
-
         quickFacts: {
-            distanceFromCity: {
-                type: String,
-                default: "",
-            },
-
-            famousFor: {
-                type: String,
-                default: "",
-            },
-
-            idealDuration: {
-                type: String,
-                default: "",
-            },
-
-            nearestAirport: {
-                type: String,
-                default: "",
-            },
-
-            nearestRailwayStation: {
-                type: String,
-                default: "",
-            },
+            distanceFromCity: String,
+            famousFor: String,
+            idealDuration: String,
+            nearestAirport: String,
+            nearestRailwayStation: String,
         },
-
-        // ----------------------
-        // HIGHLIGHTS
-        // ----------------------
-
         highlights: [
-            {
-                title: String,
-                description: String,
-                icon: String,
-            },
+            { type: String }
         ],
-
-        // ----------------------
-        // ACTIVITIES
-        // ----------------------
-
-        activities: [
-            {
-                name: String,
-                description: String,
-                image: String,
-            },
-        ],
-
-        // ----------------------
-        // TRAVEL TIPS
-        // ----------------------
-
         tips: [
-            {
-                type: String,
-            },
+            { type: String }
         ],
-
-        // ----------------------
-        // FOOD
-        // ----------------------
-
         foodSpecialities: [
-            {
-                name: String,
-                description: String,
-                image: String,
-            },
+            { type: mongoose.Schema.Types.ObjectId, ref: "Food" }
         ],
-
-        // ----------------------
-        // PHOTOGRAPHY
-        // ----------------------
-
         photographySpots: [
             {
                 title: String,
                 description: String,
             },
         ],
-
-        // ----------------------
-        // HOW TO REACH
-        // ----------------------
-
-        howToReach: {
-            byAir: {
-                type: String,
-                default: "",
-            },
-
-            byTrain: {
-                type: String,
-                default: "",
-            },
-
-            byRoad: {
-                type: String,
-                default: "",
-            },
-
-            localTransport: {
-                type: String,
-                default: "",
-            },
-        },
-
-        // ----------------------
-        // NEARBY ATTRACTIONS
-        // ----------------------
-
         nearbyAttractions: [
             {
-                name: String,
+                placeId: { type: mongoose.Schema.Types.ObjectId, ref: "TouristPlace" },
                 distance: String,
-                image: String,
             },
         ],
-
-        // ----------------------
-        // VISITOR TYPES
-        // ----------------------
-
+        howToReach: {
+            byAir: String,
+            byTrain: String,
+            byRoad: String,
+            localTransport: String,
+        },
+        budget: {
+            type: String,
+            enum: ["budget", "moderate", "luxury", "all"],
+            default: "all",
+        },
         suitableFor: [
             {
                 type: String,
-                enum: [
-                    "family",
-                    "couple",
-                    "solo",
-                    "friends",
-                    "photographers",
-                    "pilgrims",
-                    "adventure-lovers",
-                ],
+                enum: ["family", "couples", "solo", "friends", "kids", "seniors"],
             },
         ],
-
         tripType: [
             {
                 type: String,
-                enum: [
-                    "family",
-                    "couple",
-                    "solo",
-                    "friends",
-                    "pilgrim",
-                ],
+                enum: ["weekend", "long-weekend", "day-trip", "extended-trip"],
             },
         ],
-
-        // ----------------------
-        // RATING
-        // ----------------------
-
+        tags: [{ type: mongoose.Schema.Types.ObjectId, ref: "Tag" }],
         rating: {
             type: Number,
             default: 0,
-            min: 0,
-            max: 5,
         },
-
-        commentCount: {
-            type: Number,
-            default: 0,
-        },
-
-        likeCount: {
-            type: Number,
-            default: 0,
-        },
-
         reviewCount: {
             type: Number,
             default: 0,
         },
-
-        // ----------------------
-        // CATEGORY
-        // ----------------------
-
-        category: {
-            type: String,
-            enum: [
-                "heritage",
-                "nature",
-                "temple",
-                "beach",
-                "hill-station",
-                "wildlife",
-                "adventure",
-                "museum",
-                "fort",
-                "palace",
-                "garden",
-                "lake",
-                "waterfall",
-                "market",
-                "religious",
-                "modern",
-                "other",
-            ],
-            default: "other",
-            index: true,
+        likeCount: {
+            type: Number,
+            default: 0,
         },
-
-        budget: {
-            type: String,
-            enum: [
-                "budget",
-                "moderate",
-                "luxury",
-            ],
-            default: "moderate",
+        commentCount: {
+            type: Number,
+            default: 0,
         },
-
-        // ----------------------
-        // FLAGS
-        // ----------------------
-
-        featured: {
-            type: Boolean,
-            default: false,
-            index: true,
+        visitCount: {
+            type: Number,
+            default: 0,
         },
-
-        trending: {
-            type: Boolean,
-            default: false,
-        },
-
-        isActive: {
-            type: Boolean,
-            default: true,
-        },
-
         priority: {
             type: Number,
             default: 0,
             index: true,
         },
-
-        // ----------------------
-        // SEO
-        // ----------------------
-
+        featured: {
+            type: Boolean,
+            default: false,
+        },
+        trending: {
+            type: Boolean,
+            default: false,
+        },
         seo: {
-            metaTitle: {
-                type: String,
-                default: "",
-            },
-
-            metaDescription: {
-                type: String,
-                default: "",
-            },
-
-            keywords: [
-                {
-                    type: String,
-                },
-            ],
+            metaTitle: { type: String, trim: true },
+            metaDescription: { type: String, trim: true },
+            keywords: [{ type: String, trim: true }],
+        },
+        isActive: {
+            type: Boolean,
+            default: true,
+            index: true,
+        },
+        createdBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+        },
+        updatedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
         },
     },
     {
         timestamps: true,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true },
     }
 );
 
-placeSchema.pre("validate", function (next) {
-    if (this.isModified("name") && !this.slug) {
-        this.slug = this.name
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/(^-|-$)/g, "");
-    }
+// Indexes
+placeSchema.index({ categoryId: 1, rating: -1 });
+placeSchema.index({ "mapCoordinates": "2dsphere" });
+placeSchema.index({ stateId: 1, priority: -1 });
+placeSchema.index({ cityId: 1, priority: -1 });
 
+// Virtual for Activities
+placeSchema.virtual("activities", {
+    ref: "Activity",
+    localField: "_id",
+    foreignField: "placeIds",
+});
+
+// Pre-validate hook for slug generation
+placeSchema.pre("validate", function (next) {
+    if (this.name && !this.slug) {
+        this.slug = generateSlug(this.name);
+    }
     next();
 });
 
-export default mongoose.model("TouristPlace", placeSchema);
+const TouristPlace = mongoose.model("TouristPlace", placeSchema);
+export default TouristPlace;

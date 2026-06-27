@@ -15,17 +15,34 @@ const savedItemSchema = new mongoose.Schema(
         },
         itemType: {
             type: String,
-            enum: ["place", "city", "state", "festival"], // blogs use SavedBlog currently, but we could add it
+            enum: ["place", "city", "state", "festival", "blog", "food", "hotel", "restaurant", "activity", "tag"],
             required: true,
             index: true,
         },
+        itemModel: {
+            type: String,
+            required: true,
+            enum: ["TouristPlace", "City", "State", "Festival", "Blog", "Food", "Hotel", "Restaurant", "Activity", "Tag"],
+        },
+        notes: {
+            type: String, // Optional user notes for why they saved it
+            maxlength: [200, "Notes cannot exceed 200 characters"],
+        },
+        isActive: {
+            type: Boolean,
+            default: true,
+        }
     },
     {
         timestamps: true,
     }
 );
 
-// Compound index to prevent duplicate saves
+// Compound Unique Index: A user can only save a specific item once
 savedItemSchema.index({ userId: 1, itemId: 1, itemType: 1 }, { unique: true });
 
-export default mongoose.model("SavedItem", savedItemSchema);
+// Index for getting a user's recent saves of a specific type
+savedItemSchema.index({ userId: 1, itemType: 1, createdAt: -1 });
+
+const SavedItem = mongoose.model("SavedItem", savedItemSchema);
+export default SavedItem;

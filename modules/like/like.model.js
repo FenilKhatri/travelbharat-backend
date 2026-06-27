@@ -10,18 +10,23 @@ const likeSchema = new mongoose.Schema(
         },
         entityType: {
             type: String,
-            enum: ["state", "city", "destination", "blog", "festival"],
+            enum: ["state", "city", "place", "festival", "blog", "comment", "food", "hotel", "restaurant", "activity"],
             required: true,
+            index: true,
         },
         entityId: {
             type: mongoose.Schema.Types.ObjectId,
             required: true,
-            refPath: "entityModel",
+            index: true,
         },
         entityModel: {
             type: String,
             required: true,
-            enum: ["State", "City", "TouristPlace", "Blog", "Festival"],
+            enum: ["State", "City", "TouristPlace", "Festival", "Blog", "Comment", "Food", "Hotel", "Restaurant", "Activity"],
+        },
+        isActive: {
+            type: Boolean,
+            default: true,
         }
     },
     {
@@ -29,7 +34,14 @@ const likeSchema = new mongoose.Schema(
     }
 );
 
-// Compound index to prevent duplicate likes
+// Compound Unique Index: A user can only like a specific entity once
 likeSchema.index({ userId: 1, entityType: 1, entityId: 1 }, { unique: true });
 
-export default mongoose.model("UniversalLike", likeSchema);
+// Index for "recently liked" queries
+likeSchema.index({ userId: 1, createdAt: -1 });
+
+// Index for "who liked this recently" queries
+likeSchema.index({ entityType: 1, entityId: 1, createdAt: -1 });
+
+const UniversalLike = mongoose.model("UniversalLike", likeSchema);
+export default UniversalLike;

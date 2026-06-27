@@ -12,14 +12,16 @@ export const getAllFestivals = asyncHandler(async (req, res) => {
 
     const query = { isActive: true };
     if (search) query.name = { $regex: search, $options: "i" };
-    if (stateId) query.stateId = stateId;
+    if (stateId) query.stateIds = stateId;
     if (month) query.month = month.toLowerCase();
     if (category) query.category = category;
     if (featured === "true") query.featured = true;
 
     const total = await Festival.countDocuments(query);
     const festivals = await Festival.find(query)
-        .populate("stateId", "name slug")
+        .populate("stateIds", "name slug")
+        .populate("cityIds", "name slug")
+        .populate("relatedPlaces", "name slug")
         .sort("-priority -createdAt")
         .skip((page - 1) * limit)
         .limit(parseInt(limit))
@@ -33,17 +35,19 @@ export const getAllFestivals = asyncHandler(async (req, res) => {
 
 export const getFeaturedFestivals = asyncHandler(async (req, res) => {
     const festivals = await Festival.find({ isActive: true, featured: true })
-        .populate("stateId", "name slug")
+        .populate("stateIds", "name slug")
         .sort("-priority")
         .limit(8)
-        .select("name slug description images.thumbnail month duration stateId category");
+        .select("name slug description images.thumbnail month duration stateIds category");
 
     return successResponse(res, 200, "Featured festivals fetched", { festivals });
 });
 
 export const getFestivalBySlug = asyncHandler(async (req, res) => {
     const festival = await Festival.findOne({ slug: req.params.slug, isActive: true })
-        .populate("stateId", "name slug");
+        .populate("stateIds", "name slug")
+        .populate("cityIds", "name slug")
+        .populate("relatedPlaces", "name slug images.thumbnail");
 
     if (!festival) return errorResponse(res, 404, "Festival not found");
     return successResponse(res, 200, "Festival fetched", { festival });
@@ -53,7 +57,7 @@ export const getFestivalsByState = asyncHandler(async (req, res) => {
     const state = await State.findOne({ slug: req.params.stateSlug });
     if (!state) return errorResponse(res, 404, "State not found");
 
-    const festivals = await Festival.find({ stateId: state._id, isActive: true })
+    const festivals = await Festival.find({ stateIds: state._id, isActive: true })
         .sort("-priority")
         .select("name slug description images.thumbnail month duration category");
 
@@ -91,11 +95,11 @@ export const adminGetAllFestivals = asyncHandler(async (req, res) => {
     const { search, stateId, page = 1, limit = 20 } = req.query;
     const query = {};
     if (search) query.name = { $regex: search, $options: "i" };
-    if (stateId) query.stateId = stateId;
+    if (stateId) query.stateIds = stateId;
 
     const total = await Festival.countDocuments(query);
     const festivals = await Festival.find(query)
-        .populate("stateId", "name slug")
+        .populate("stateIds", "name slug")
         .sort("-priority -createdAt")
         .skip((page - 1) * limit)
         .limit(parseInt(limit));
@@ -107,7 +111,10 @@ export const adminGetAllFestivals = asyncHandler(async (req, res) => {
 });
 
 export const adminGetFestival = asyncHandler(async (req, res) => {
-    const festival = await Festival.findById(req.params.id).populate("stateId", "name slug");
+    const festival = await Festival.findById(req.params.id)
+        .populate("stateIds", "name slug")
+        .populate("cityIds", "name slug")
+        .populate("relatedPlaces", "name slug");
     if (!festival) return errorResponse(res, 404, "Festival not found");
     return successResponse(res, 200, "Festival fetched", { festival });
 });

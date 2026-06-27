@@ -1,219 +1,149 @@
 import mongoose from "mongoose";
+import { generateSlug } from "../../common/utils/slug.utils.js";
 
 const blogSchema = new mongoose.Schema(
     {
         title: {
             type: String,
-            required: true,
+            required: [true, "Blog title is required"],
             trim: true,
+            maxlength: [200, "Title cannot exceed 200 characters"],
         },
-
         slug: {
             type: String,
-            required: true,
             unique: true,
-            lowercase: true,
             index: true,
         },
-
-        content: {
-            type: String,
-            required: true,
-            alias: "body",
-        },
-
-        excerpt: {
-            type: String,
-            default: "",
-        },
-
         author: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
             required: true,
-        },
-
-        category: {
-            type: String,
-            enum: [
-                "travel-guide",
-                "destination",
-                "food",
-                "culture",
-                "adventure",
-                "heritage",
-                "festivals",
-                "tips",
-                "budget-travel",
-                "luxury-travel",
-                "wildlife",
-                "spiritual",
-                "other",
-            ],
-            default: "travel-guide",
             index: true,
         },
-
-        tags: [
-            {
-                type: String,
-                trim: true,
-            },
-        ],
-
-        images: {
-            hero: {
-                type: String,
-                default: "",
-            },
-
-            thumbnail: {
-                type: String,
-                default: "",
-            },
-
-            gallery: [
-                {
-                    type: String,
-                },
-            ],
+        content: {
+            type: String,
+            required: [true, "Blog content is required"],
         },
-
+        excerpt: {
+            type: String,
+            maxlength: [300, "Excerpt cannot exceed 300 characters"],
+        },
+        readTime: {
+            type: Number, // in minutes
+            default: 3,
+        },
+        wordCount: {
+            type: Number,
+            default: 0,
+        },
+        language: {
+            type: String,
+            default: "en", // For future i18n
+        },
+        coverImage: {
+            url: { type: String },
+            publicId: { type: String },
+            altText: { type: String },
+        },
+        status: {
+            type: String,
+            enum: ["draft", "pending", "published", "rejected"],
+            default: "draft",
+            index: true,
+        },
+        rejectionReason: {
+            type: String,
+        },
+        categoryId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Category",
+            required: true,
+            index: true,
+        },
         stateId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "State",
+            index: true,
         },
-
         relatedCities: [
             {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "City",
             },
         ],
-
         relatedDestinations: [
             {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "TouristPlace",
             },
         ],
-
-        travelTips: [
+        tags: [
             {
-                type: String,
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Tag",
+                index: true,
             },
         ],
-
         faqs: [
             {
                 question: String,
                 answer: String,
             },
         ],
-
-        readTime: {
-            type: Number,
-            default: 5,
+        editRequest: {
+            isRequested: { type: Boolean, default: false },
+            reason: String,
+            requestedAt: Date,
+            status: { type: String, enum: ["pending", "approved", "rejected"] },
         },
-
-        views: {
-            type: Number,
-            default: 0,
-            alias: "viewCount",
+        deleteRequest: {
+            isRequested: { type: Boolean, default: false },
+            reason: String,
+            requestedAt: Date,
+            status: { type: String, enum: ["pending", "approved", "rejected"] },
         },
-
-        likes: {
-            type: Number,
-            default: 0,
-            alias: "likeCount",
+        publishedAt: {
+            type: Date,
         },
-
-        commentCount: {
-            type: Number,
-            default: 0,
-        },
-
-        featured: {
-            type: Boolean,
-            default: false,
-            index: true,
-        },
-
-        isPublished: {
-            type: Boolean,
-            default: false,
-        },
-
-        status: {
-            type: String,
-            enum: ["draft", "pending", "published", "rejected"],
-            default: "pending",
-            index: true,
-        },
-
-        rejectionReason: {
-            type: String,
-            default: "",
-        },
-
         approvedBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
         },
-
         approvedAt: {
             type: Date,
         },
-
-        editRequest: {
-            requestedAt: Date,
-            title: String,
-            content: String,
-            excerpt: String,
-            category: String,
-            tags: [String],
-            images: {
-                hero: String,
-                thumbnail: String,
-                gallery: [String]
-            }
+        viewCount: {
+            type: Number,
+            default: 0,
+            index: true,
         },
-
-        deleteRequest: {
-            requestedAt: Date,
-            reason: String,
+        likeCount: {
+            type: Number,
+            default: 0,
+            index: true,
         },
-
-        publishedAt: {
-            type: Date,
-        },
-
-        isActive: {
-            type: Boolean,
-            default: true,
-        },
-
-        priority: {
+        commentCount: {
             type: Number,
             default: 0,
         },
-
+        reportCount: {
+            type: Number,
+            default: 0,
+        },
         seo: {
-            metaTitle: {
-                type: String,
-                default: "",
-            },
-
-            metaDescription: {
-                type: String,
-                default: "",
-            },
-
-            keywords: [
-                {
-                    type: String,
-                },
-            ],
+            metaTitle: { type: String, trim: true },
+            metaDescription: { type: String, trim: true },
+            keywords: [{ type: String, trim: true }],
+        },
+        isActive: {
+            type: Boolean,
+            default: true,
+            index: true,
+        },
+        isFeatured: {
+            type: Boolean,
+            default: false,
+            index: true,
         },
     },
     {
@@ -221,43 +151,26 @@ const blogSchema = new mongoose.Schema(
     }
 );
 
+// Indexes
+blogSchema.index({ status: 1, publishedAt: -1 });
+blogSchema.index({ categoryId: 1, status: 1 });
+blogSchema.index({ author: 1, status: 1 });
+
+// Pre-validate hook for slug generation
 blogSchema.pre("validate", function (next) {
-    if (this.isModified("title") && !this.slug) {
-        this.slug = this.title
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/(^-|-$)/g, "");
+    if (this.title && !this.slug) {
+        this.slug = generateSlug(this.title);
     }
-
-    if (this.isModified("content") && this.content) {
-        const wordCount = this.content.split(/\s+/).length;
-        this.readTime = Math.max(1, Math.ceil(wordCount / 200));
+    
+    // Auto-calculate word count and read time
+    if (this.isModified('content') && this.content) {
+        const words = this.content.split(/\s+/).length;
+        this.wordCount = words;
+        this.readTime = Math.ceil(words / 200); // Assuming 200 words per minute reading speed
     }
-
+    
     next();
 });
 
-// BLOGS LISTING
-blogSchema.index({
-    isPublished: 1,
-    publishedAt: -1,
-});
-
-// FILTER BY TAG
-blogSchema.index({
-    tags: 1,
-});
-
-// FILTER BY CATEGORY
-blogSchema.index({
-    category: 1,
-    publishedAt: -1,
-});
-
-// POPULAR BLOGS
-blogSchema.index({
-    views: -1,
-    likes: -1,
-});
-
-export default mongoose.model("Blog", blogSchema);
+const Blog = mongoose.model("Blog", blogSchema);
+export default Blog;

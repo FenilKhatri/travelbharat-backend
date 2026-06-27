@@ -4,27 +4,30 @@ const newsletterSchema = new mongoose.Schema(
     {
         email: {
             type: String,
-            required: true,
+            required: [true, "Email is required"],
             unique: true,
-            lowercase: true,
             trim: true,
+            lowercase: true,
+            match: [/^\S+@\S+\.\S+$/, "Please use a valid email address"],
             index: true,
+        },
+        source: {
+            type: String,
+            enum: ["homepage", "footer", "blog", "popup", "registration", "other"],
+            default: "footer",
+        },
+        tags: [
+            { type: String, index: true } // e.g. "budget-traveler", "luxury", "rajasthan"
+        ],
+        lastEmailSentAt: {
+            type: Date,
         },
         isActive: {
             type: Boolean,
             default: true,
         },
-        subscribedAt: {
-            type: Date,
-            default: Date.now,
-        },
         unsubscribedAt: {
             type: Date,
-        },
-        source: {
-            type: String,
-            enum: ["homepage", "footer", "blog", "popup", "other"],
-            default: "homepage",
         },
     },
     {
@@ -32,4 +35,5 @@ const newsletterSchema = new mongoose.Schema(
     }
 );
 
-export default mongoose.model("NewsletterSubscriber", newsletterSchema);
+const Newsletter = mongoose.model("Newsletter", newsletterSchema);
+export default Newsletter;

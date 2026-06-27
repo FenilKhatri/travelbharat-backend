@@ -11,11 +11,17 @@ import Festival from "../festival/festival.model.js";
 
 // GET /api/stats/public — aggregate counts for public display
 export const getPublicStats = asyncHandler(async (req, res) => {
+    const categorySlugs = ["heritage", "temple", "religious", "museum", "fort", "palace"];
+    
+    const Category = (await import("../category/category.model.js")).default;
+    const categoryDocs = await Category.find({ slug: { $in: categorySlugs } }).select('_id').lean();
+    const categoryIds = categoryDocs.map(c => c._id);
+
     const [states, cities, destinations, experiences, festivals] = await Promise.all([
         State.countDocuments({ isActive: true }),
         City.countDocuments({ isActive: true }),
         TouristPlace.countDocuments({ isActive: true }),
-        TouristPlace.countDocuments({ isActive: true, category: { $in: ["heritage", "temple", "religious", "museum", "fort", "palace"] } }),
+        TouristPlace.countDocuments({ isActive: true, categoryId: { $in: categoryIds } }),
         Festival.countDocuments({ isActive: true }),
     ]);
 

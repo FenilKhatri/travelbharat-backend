@@ -8,48 +8,85 @@ const reviewSchema = new mongoose.Schema(
             required: true,
             index: true,
         },
-        placeId: {
+        // Polymorphic reference
+        entityType: {
+            type: String,
+            enum: ["place", "hotel", "restaurant", "activity", "city"],
+            required: true,
+            index: true,
+        },
+        entityId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "TouristPlace",
             required: true,
             index: true,
         },
         rating: {
             type: Number,
-            required: true,
-            min: 1,
-            max: 5,
+            required: [true, "Rating is required"],
+            min: [1, "Rating must be at least 1"],
+            max: [5, "Rating cannot be more than 5"],
+        },
+        // Optional sub-ratings for detailed feedback
+        subRatings: {
+            cleanliness: { type: Number, min: 1, max: 5 },
+            service: { type: Number, min: 1, max: 5 },
+            value: { type: Number, min: 1, max: 5 },
+            location: { type: Number, min: 1, max: 5 },
         },
         title: {
             type: String,
-            default: "",
             trim: true,
+            maxlength: [100, "Title cannot exceed 100 characters"],
         },
-        comment: {
+        review: {
             type: String,
-            required: true,
+            required: [true, "Review text is required"],
             trim: true,
+            maxlength: [1000, "Review cannot exceed 1000 characters"],
         },
-        images: [{ type: String }],
+        images: [
+            {
+                url: String,
+                publicId: String,
+                altText: String,
+            },
+        ],
+        tripType: {
+            type: String,
+            enum: ["family", "couple", "solo", "friends", "business", ""],
+            default: "",
+        },
         visitDate: {
             type: Date,
         },
-        tripType: {
-            type: String,
-            enum: ["family", "couple", "solo", "friends", "pilgrim", "business"],
+        verifiedVisit: {
+            type: Boolean,
+            default: false,
+        },
+        helpfulVotes: {
+            type: Number,
+            default: 0,
+        },
+        reportCount: {
+            type: Number,
+            default: 0,
         },
         isApproved: {
             type: Boolean,
-            default: false,
-            index: true,
+            default: true,
         },
         isActive: {
             type: Boolean,
             default: true,
+            index: true,
         },
         adminResponse: {
-            type: String,
-            default: "",
+            text: String,
+            respondedBy: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+            },
+            respondedAt: Date,
         },
     },
     {
@@ -57,7 +94,13 @@ const reviewSchema = new mongoose.Schema(
     }
 );
 
-// Prevent duplicate reviews from same user for same place
-reviewSchema.index({ userId: 1, placeId: 1 }, { unique: true });
+// Compound Indexes
+// Ensure a user can only review an entity once
+reviewSchema.index({ userId: 1, entityType: 1, entityId: 1 }, { unique: true });
+// Fast lookup for reviews of a specific entity
+reviewSchema.index({ entityType: 1, entityId: 1, isActive: 1, isApproved: 1, createdAt: -1 });
+// Sort by most helpful
+reviewSchema.index({ entityType: 1, entityId: 1, helpfulVotes: -1 });
 
-export default mongoose.model("Review", reviewSchema);
+const Review = mongoose.model("Review", reviewSchema);
+export default Review;

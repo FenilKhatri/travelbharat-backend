@@ -1,96 +1,118 @@
 import mongoose from "mongoose";
+import { generateSlug } from "../../common/utils/slug.utils.js";
 
 const stateSchema = new mongoose.Schema(
     {
         name: {
             type: String,
-            required: true,
+            required: [true, "State name is required"],
             trim: true,
             unique: true,
         },
         slug: {
             type: String,
-            required: true,
             unique: true,
-            lowercase: true,
             index: true,
         },
-        tagline: {
+        stateCode: {
             type: String,
-            default: "",
+            trim: true,
+            uppercase: true,
         },
-        description: {
-            type: String,
-            required: true,
-        },
-        overview: {
-            type: String,
-            default: "",
-        },
-        capital: {
-            type: String,
-            default: "",
-        },
-        languages: [{ type: String }],
-        images: {
-            hero: { type: String, default: "" },
-            thumbnail: { type: String, default: "" },
-            gallery: [{ type: String }],
-        },
-        stateBranding: {
-            leftBackground: { type: String, default: "" },
-            rightBackground: { type: String, default: "" },
-            patternImage: { type: String, default: "" },
-            overlayImage: { type: String, default: "" }
-        },
-        highlights: [
-            {
-                title: { type: String },
-                description: { type: String },
-                icon: { type: String, default: "" },
-            },
-        ],
-        food: [
-            {
-                name: { type: String },
-                description: { type: String },
-                image: { type: String, default: "" },
-                isVeg: { type: Boolean, default: true },
-            },
-        ],
-        history: {
-            type: String,
-            default: "",
-        },
-        culture: {
-            type: String,
-            default: "",
-        },
-        weather: {
-            summer: { type: String, default: "" },
-            winter: { type: String, default: "" },
-            monsoon: { type: String, default: "" },
-            bestSeason: { type: String, default: "" },
-        },
-        bestTimeToVisit: {
-            type: String,
-            default: "",
-        },
-        transport: {
-            byAir: { type: String, default: "" },
-            byTrain: { type: String, default: "" },
-            byRoad: { type: String, default: "" },
-            local: { type: String, default: "" },
-        },
-        travelTips: [{ type: String }],
-        mapCoordinates: {
-            lat: { type: Number, default: 0 },
-            lng: { type: Number, default: 0 },
+        isUnionTerritory: {
+            type: Boolean,
+            default: false,
         },
         region: {
             type: String,
             enum: ["north", "south", "east", "west", "central", "northeast"],
-            default: "west",
+            required: true,
+        },
+        tagline: {
+            type: String,
+            trim: true,
+        },
+        description: {
+            type: String,
+            required: [true, "Description is required"],
+        },
+        overview: {
+            type: String,
+        },
+        capital: {
+            type: String,
+            required: true,
+        },
+        area: {
+            type: Number, // in sq km
+        },
+        population: {
+            type: Number,
+        },
+        languages: [
+            {
+                type: String,
+                trim: true,
+            },
+        ],
+        images: {
+            hero: { url: String, publicId: String, altText: String },
+            thumbnail: { url: String, publicId: String, altText: String },
+            gallery: [
+                { url: String, publicId: String, altText: String }
+            ],
+        },
+        stateBranding: {
+            leftBackground: { url: String, publicId: String },
+            rightBackground: { url: String, publicId: String },
+            patternImage: { url: String, publicId: String },
+            overlayImage: { url: String, publicId: String },
+            primaryColor: String,
+        },
+        highlights: [
+            {
+                title: String,
+                description: String,
+                icon: String,
+            },
+        ],
+        history: {
+            type: String,
+        },
+        culture: {
+            type: String,
+        },
+        weather: {
+            summer: String,
+            winter: String,
+            monsoon: String,
+            bestSeason: String,
+        },
+        transport: {
+            byAir: String,
+            byTrain: String,
+            byRoad: String,
+            local: String,
+        },
+        travelTips: [
+            {
+                type: String,
+            },
+        ],
+        mapCoordinates: {
+            type: {
+                type: String,
+                enum: ["Point"],
+                default: "Point",
+            },
+            coordinates: {
+                type: [Number], // [longitude, latitude]
+            },
+        },
+        seo: {
+            metaTitle: { type: String, trim: true },
+            metaDescription: { type: String, trim: true },
+            keywords: [{ type: String, trim: true }],
         },
         totalCities: {
             type: Number,
@@ -100,44 +122,69 @@ const stateSchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
-        priority: {
-            type: Number,
-            default: 0,
-            index: true,
-        },
-        featured: {
-            type: Boolean,
-            default: false,
-            index: true,
-        },
-        isActive: {
-            type: Boolean,
-            default: true,
-        },
         likeCount: {
             type: Number,
             default: 0,
         },
-        seo: {
-            metaTitle: { type: String, default: "" },
-            metaDescription: { type: String, default: "" },
-            keywords: [{ type: String }],
+        priority: {
+            type: Number,
+            default: 0,
+        },
+        featured: {
+            type: Boolean,
+            default: false,
+        },
+        isActive: {
+            type: Boolean,
+            default: true,
+            index: true,
+        },
+        createdBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+        },
+        updatedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
         },
     },
     {
         timestamps: true,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true },
     }
 );
 
-// Auto-generate slug from name
+// Indexes
+stateSchema.index({ priority: -1 });
+stateSchema.index({ featured: -1 });
+stateSchema.index({ region: 1 });
+stateSchema.index({ "mapCoordinates": "2dsphere" });
+
+// Virtuals
+stateSchema.virtual("cities", {
+    ref: "City",
+    localField: "_id",
+    foreignField: "stateId",
+});
+stateSchema.virtual("festivals", {
+    ref: "Festival",
+    localField: "_id",
+    foreignField: "stateIds",
+});
+stateSchema.virtual("foods", {
+    ref: "Food",
+    localField: "_id",
+    foreignField: "stateIds",
+});
+
+// Pre-validate hook for slug generation
 stateSchema.pre("validate", function (next) {
-    if (this.isModified("name") && !this.slug) {
-        this.slug = this.name
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/(^-|-$)/g, "");
+    if (this.name && !this.slug) {
+        this.slug = generateSlug(this.name);
     }
     next();
 });
 
-export default mongoose.model("State", stateSchema);
+const State = mongoose.model("State", stateSchema);
+export default State;

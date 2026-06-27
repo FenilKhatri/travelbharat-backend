@@ -12,6 +12,10 @@ import NewsletterSubscriber from "../newsletter/newsletter.model.js";
 import HeroBanner from "./heroBanner.model.js";
 import SiteSetting from "./siteSetting.model.js";
 import Category from "../category/category.model.js";
+import Hotel from "../hotel/hotel.model.js";
+import Restaurant from "../restaurant/restaurant.model.js";
+import Activity from "../activity/activity.model.js";
+import Food from "../food/food.model.js";
 
 //  DASHBOARD ANALYTICS 
 
@@ -20,6 +24,7 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
         totalUsers, totalStates, totalCities, totalPlaces,
         totalBlogs, totalFestivals, totalReviews,
         pendingReviews, newInquiries, totalSubscribers,
+        totalHotels, totalRestaurants, totalActivities, totalFoods
     ] = await Promise.all([
         User.countDocuments({ role: "user" }),
         State.countDocuments(),
@@ -31,6 +36,10 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
         Review.countDocuments({ isApproved: false }),
         ContactInquiry.countDocuments({ status: "new" }),
         NewsletterSubscriber.countDocuments({ isActive: true }),
+        Hotel.countDocuments(),
+        Restaurant.countDocuments(),
+        Activity.countDocuments(),
+        Food.countDocuments(),
     ]);
 
     // Recent users (last 30 days)
@@ -70,6 +79,7 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
             totalUsers, totalStates, totalCities, totalPlaces,
             totalBlogs, totalFestivals, totalReviews,
             pendingReviews, newInquiries, totalSubscribers, recentUsers,
+            totalHotels, totalRestaurants, totalActivities, totalFoods,
         },
         userGrowth,
         topPlaces,

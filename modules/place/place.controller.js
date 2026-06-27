@@ -20,7 +20,7 @@ export const getAllPlaces = asyncHandler(async (req, res) => {
     if (search) query.name = { $regex: search, $options: "i" };
     if (stateId) query.stateId = stateId;
     if (cityId) query.cityId = cityId;
-    if (category) query.category = category;
+    if (category) query.categoryId = category; // assuming category query param is an ObjectId, or needs to be resolved
     if (budget) query.budget = budget;
     if (tripType) query.tripType = tripType;
     if (featured === "true") query.featured = true;
@@ -30,6 +30,7 @@ export const getAllPlaces = asyncHandler(async (req, res) => {
     const places = await TouristPlace.find(query)
         .populate("stateId", "name slug")
         .populate("cityId", "name slug")
+        .populate("categoryId", "name slug")
         .sort(sort)
         .skip((page - 1) * limit)
         .limit(parseInt(limit))
@@ -56,9 +57,10 @@ export const getTrendingPlaces = asyncHandler(async (req, res) => {
     const places = await TouristPlace.find({ isActive: true, trending: true })
         .populate("stateId", "name slug")
         .populate("cityId", "name slug")
+        .populate("categoryId", "name slug")
         .sort("-priority -rating")
         .limit(8)
-        .select("name slug images.thumbnail category rating reviewCount stateId cityId");
+        .select("name slug images.thumbnail categoryId rating reviewCount stateId cityId");
 
     return successResponse(res, 200, "Trending places fetched", { places });
 });
@@ -67,7 +69,11 @@ export const getPlaceBySlug = asyncHandler(async (req, res) => {
     const place = await TouristPlace.findOne({ slug: req.params.slug, isActive: true })
         .populate("stateId", "name slug")
         .populate("cityId", "name slug")
-        .populate("categoryId", "name slug");
+        .populate("categoryId", "name slug")
+        .populate("tags", "name slug")
+        .populate("foodSpecialities", "name slug images.thumbnail")
+        .populate("activities", "name slug description images.thumbnail")
+        .populate("nearbyAttractions.placeId", "name slug images.thumbnail rating");
 
     if (!place) return errorResponse(res, 404, "Place not found");
     return successResponse(res, 200, "Place fetched", { place });
@@ -84,10 +90,11 @@ export const getPlacesByCity = asyncHandler(async (req, res) => {
     const total = await TouristPlace.countDocuments(query);
     const places = await TouristPlace.find(query)
         .populate("stateId", "name slug")
+        .populate("categoryId", "name slug")
         .sort("-priority -rating")
         .skip((page - 1) * limit)
         .limit(parseInt(limit))
-        .select("name slug images.thumbnail category rating reviewCount description entryFee timings duration");
+        .select("name slug images.thumbnail categoryId rating reviewCount description entryFee timings duration");
 
     return successResponse(res, 200, "Places fetched", {
         places, city: { name: city.name, slug: city.slug },
@@ -106,10 +113,11 @@ export const getPlacesByState = asyncHandler(async (req, res) => {
     const total = await TouristPlace.countDocuments(query);
     const places = await TouristPlace.find(query)
         .populate("cityId", "name slug")
+        .populate("categoryId", "name slug")
         .sort("-priority -rating")
         .skip((page - 1) * limit)
         .limit(parseInt(limit))
-        .select("name slug images.thumbnail category rating reviewCount cityId");
+        .select("name slug images.thumbnail categoryId rating reviewCount cityId");
 
     return successResponse(res, 200, "Places fetched", {
         places, state: { name: state.name, slug: state.slug },
@@ -121,7 +129,24 @@ export const getPlacesByState = asyncHandler(async (req, res) => {
 export const getPlaceCategories = asyncHandler(async (req, res) => {
     const categories = await TouristPlace.aggregate([
         { $match: { isActive: true } },
-        { $group: { _id: "$category", count: { $sum: 1 } } },
+        { $group: { _id: "$categoryId", count: { $sum: 1 } } },
+        {
+            $lookup: {
+                from: "categories",
+                localField: "_id",
+                foreignField: "_id",
+                as: "categoryDetails"
+            }
+        },
+        { $unwind: "$categoryDetails" },
+        {
+            $project: {
+                _id: 1,
+                count: 1,
+                name: "$categoryDetails.name",
+                slug: "$categoryDetails.slug"
+            }
+        },
         { $sort: { count: -1 } },
     ]);
 
@@ -178,6 +203,7 @@ export const adminGetAllPlaces = asyncHandler(async (req, res) => {
     const places = await TouristPlace.find(query)
         .populate("stateId", "name slug")
         .populate("cityId", "name slug")
+        .populate("categoryId", "name slug")
         .sort("-priority -createdAt")
         .skip((page - 1) * limit)
         .limit(parseInt(limit));

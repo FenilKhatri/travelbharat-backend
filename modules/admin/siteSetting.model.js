@@ -4,27 +4,38 @@ const siteSettingSchema = new mongoose.Schema(
     {
         key: {
             type: String,
-            required: true,
+            required: [true, "Setting key is required"],
             unique: true,
+            trim: true,
             index: true,
         },
         value: {
             type: mongoose.Schema.Types.Mixed,
-            required: true,
+            required: [true, "Setting value is required"],
         },
         category: {
             type: String,
-            enum: ["general", "seo", "social", "contact", "maintenance", "email", "appearance"],
+            enum: ["general", "seo", "social", "contact", "theme", "payment", "other"],
             default: "general",
+            index: true,
+        },
+        isPublic: {
+            type: Boolean,
+            default: false, // If true, returned in frontend config payload
+            index: true,
         },
         description: {
             type: String,
-            default: "",
+        },
+        updatedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
         },
     },
     {
-        timestamps: true,
+        timestamps: true, // we mostly care about updatedAt here
     }
 );
 
-export default mongoose.model("SiteSetting", siteSettingSchema);
+const SiteSetting = mongoose.model("SiteSetting", siteSettingSchema);
+export default SiteSetting;

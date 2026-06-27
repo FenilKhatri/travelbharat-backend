@@ -1,127 +1,89 @@
 import mongoose from "mongoose";
+import { generateSlug } from "../../common/utils/slug.utils.js";
 
 const citySchema = new mongoose.Schema(
     {
         name: {
             type: String,
-            required: true,
+            required: [true, "City name is required"],
             trim: true,
         },
         slug: {
             type: String,
             required: true,
-            lowercase: true,
-            index: true,
         },
         stateId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "State",
-            required: true,
+            required: [true, "State reference is required"],
             index: true,
         },
-        description: {
+        district: {
             type: String,
-            required: true,
+            trim: true,
         },
-        overview: {
+        type: {
             type: String,
-            default: "",
+            enum: ["city", "town", "village", "cantonment", "hill-station"],
+            default: "city",
         },
         tagline: {
             type: String,
-            default: "",
+            trim: true,
+        },
+        description: {
+            type: String,
+            required: [true, "Description is required"],
+        },
+        overview: {
+            type: String,
         },
         images: {
-            hero: { type: String, default: "" },
-            thumbnail: { type: String, default: "" },
-            gallery: [{ type: String }],
+            hero: { url: String, publicId: String, altText: String },
+            thumbnail: { url: String, publicId: String, altText: String },
+            gallery: [
+                { url: String, publicId: String, altText: String }
+            ],
         },
-        attractions: [
-            {
-                name: { type: String },
-                description: { type: String },
-                image: { type: String, default: "" },
-                entryFee: { type: String, default: "Free" },
-                timings: { type: String, default: "" },
-            },
-        ],
-        hotels: [
-            {
-                name: { type: String },
-                description: { type: String },
-                rating: { type: Number, default: 0 },
-                priceRange: { type: String, default: "" },
-                image: { type: String, default: "" },
-                address: { type: String, default: "" },
-            },
-        ],
-        restaurants: [
-            {
-                name: { type: String },
-                cuisine: { type: String, default: "" },
-                description: { type: String },
-                priceRange: { type: String, default: "" },
-                image: { type: String, default: "" },
-                rating: { type: Number, default: 0 },
-            },
-        ],
-        shopping: [
-            {
-                name: { type: String },
-                description: { type: String },
-                image: { type: String, default: "" },
-                speciality: { type: String, default: "" },
-            },
-        ],
         transport: {
-            local: { type: String, default: "" },
-            fromAirport: { type: String, default: "" },
-            fromStation: { type: String, default: "" },
-            busStation: { type: String, default: "" },
+            local: String,
+            fromAirport: String,
+            fromStation: String,
+            busStation: String,
         },
         emergencyInfo: {
-            police: { type: String, default: "100" },
-            ambulance: { type: String, default: "108" },
-            hospital: { type: String, default: "" },
-            fireBrigade: { type: String, default: "101" },
-            touristHelpline: { type: String, default: "1363" },
+            police: String,
+            ambulance: String,
+            hospital: String,
+            fireBrigade: String,
+            touristHelpline: String,
         },
         nearbyPlaces: [
             {
-                name: { type: String },
-                distance: { type: String },
-                image: { type: String, default: "" },
+                placeId: { type: mongoose.Schema.Types.ObjectId, ref: "TouristPlace" },
+                distance: String,
             },
         ],
         mapCoordinates: {
-            lat: { type: Number, default: 0 },
-            lng: { type: Number, default: 0 },
-        },
-        bestTimeToVisit: {
-            type: String,
-            default: "",
+            type: {
+                type: String,
+                enum: ["Point"],
+                default: "Point",
+            },
+            coordinates: {
+                type: [Number], // [longitude, latitude]
+            },
         },
         population: {
-            type: String,
-            default: "",
+            type: Number,
         },
         pincode: {
             type: String,
-            default: "",
         },
-        priority: {
-            type: Number,
-            default: 0,
-            index: true,
-        },
-        featured: {
-            type: Boolean,
-            default: false,
-            index: true,
-        },
-        isActive: {
-            type: Boolean,
-            default: true,
+        seo: {
+            metaTitle: { type: String, trim: true },
+            metaDescription: { type: String, trim: true },
+            keywords: [{ type: String, trim: true }],
         },
         totalPlaces: {
             type: Number,
@@ -131,38 +93,66 @@ const citySchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
-        seo: {
-            metaTitle: { type: String, default: "" },
-            metaDescription: { type: String, default: "" },
-            keywords: [{ type: String }],
+        priority: {
+            type: Number,
+            default: 0,
+        },
+        featured: {
+            type: Boolean,
+            default: false,
+        },
+        isActive: {
+            type: Boolean,
+            default: true,
+            index: true,
+        },
+        createdBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+        },
+        updatedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
         },
     },
     {
         timestamps: true,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true },
     }
 );
 
-// Compound unique index: slug must be unique within a state
-citySchema.index({ slug: 1, stateId: 1 }, { unique: true });
+// Indexes
+citySchema.index({ slug: 1, stateId: 1 }, { unique: true }); // A state cannot have two cities with the same slug
+citySchema.index({ priority: -1 });
+citySchema.index({ "mapCoordinates": "2dsphere" });
 
-// Virtual for destinations
+// Virtuals
 citySchema.virtual("destinations", {
     ref: "TouristPlace",
     localField: "_id",
     foreignField: "cityId",
 });
 
-citySchema.set("toObject", { virtuals: true });
-citySchema.set("toJSON", { virtuals: true });
+citySchema.virtual("hotels", {
+    ref: "Hotel",
+    localField: "_id",
+    foreignField: "cityId",
+});
 
+citySchema.virtual("restaurants", {
+    ref: "Restaurant",
+    localField: "_id",
+    foreignField: "cityId",
+});
+
+// Pre-validate hook for slug generation
 citySchema.pre("validate", function (next) {
-    if (this.isModified("name") && !this.slug) {
-        this.slug = this.name
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/(^-|-$)/g, "");
+    if (this.name && !this.slug) {
+        this.slug = generateSlug(this.name);
     }
     next();
 });
 
-export default mongoose.model("City", citySchema);
+const City = mongoose.model("City", citySchema);
+export default City;

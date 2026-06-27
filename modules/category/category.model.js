@@ -1,43 +1,54 @@
 import mongoose from "mongoose";
+import { generateSlug } from "../../common/utils/slug.utils.js";
 
 const categorySchema = new mongoose.Schema(
     {
         name: {
             type: String,
-            required: true,
+            required: [true, "Category name is required"],
             trim: true,
         },
         slug: {
             type: String,
-            required: true,
             unique: true,
-            lowercase: true,
+            index: true,
+        },
+        type: {
+            type: String,
+            enum: ["place", "blog", "activity"],
+            required: true,
+            index: true,
+        },
+        parentId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Category",
+            default: null,
             index: true,
         },
         description: {
             type: String,
-            default: "",
-        },
-        image: {
-            type: String,
-            default: "",
+            trim: true,
         },
         icon: {
-            type: String,
-            default: "",
+            type: String, // String icon name (e.g., FontAwesome, Lucide)
         },
-        type: {
-            type: String,
-            enum: ["place", "blog"],
-            required: true,
+        image: {
+            url: { type: String },
+            publicId: { type: String },
+            altText: { type: String },
         },
         isActive: {
             type: Boolean,
             default: true,
+            index: true,
         },
-        priority: {
-            type: Number,
-            default: 0,
+        createdBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+        },
+        updatedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
         },
     },
     {
@@ -45,14 +56,17 @@ const categorySchema = new mongoose.Schema(
     }
 );
 
+// Compound Index: Enforce unique category names per type
+categorySchema.index({ name: 1, type: 1 }, { unique: true });
+
+// Pre-validate hook for slug generation
 categorySchema.pre("validate", function (next) {
-    if (this.isModified("name") && !this.slug) {
-        this.slug = this.name
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/(^-|-$)/g, "");
+    if (this.name && !this.slug) {
+        // Include type in slug to ensure uniqueness across types
+        this.slug = generateSlug(`${this.type}-${this.name}`);
     }
     next();
 });
 
-export default mongoose.model("Category", categorySchema);
+const Category = mongoose.model("Category", categorySchema);
+export default Category;

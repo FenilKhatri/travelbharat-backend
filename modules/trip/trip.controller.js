@@ -7,8 +7,8 @@ import Notification from "../notification/notification.model.js";
 // Get user's trips
 export const getMyTrips = asyncHandler(async (req, res) => {
     let trips = await SavedTrip.find({ userId: req.user.id })
-        .populate("destinationId", "name slug images category stateId cityId")
-        .populate("places.placeId", "name slug heroImage images category stateId cityId")
+        .populate("destinationId", "name slug images categoryId stateId cityId")
+        .populate("places.placeId", "name slug heroImage images categoryId stateId cityId")
         .sort("-updatedAt");
 
     const now = new Date();
@@ -37,7 +37,7 @@ export const getMyTrips = asyncHandler(async (req, res) => {
 // Get single trip
 export const getTrip = asyncHandler(async (req, res) => {
     let trip = await SavedTrip.findOne({ _id: req.params.id, userId: req.user.id })
-        .populate("destinationId", "name slug images category stateId cityId overview timings location bestTimeToVisit highlights travelTips")
+        .populate("destinationId", "name slug images categoryId stateId cityId overview timings location bestTimeToVisit highlights travelTips")
         .populate({
             path: "places.placeId",
             populate: [
@@ -345,7 +345,7 @@ export const generateTripItinerary = asyncHandler(async (req, res) => {
         cityId: place.cityId._id,
         _id: { $ne: place._id },
         isActive: true
-    }).limit(5).select("name images category");
+    }).limit(5).select("name images categoryId").populate("categoryId", "name slug");
 
     // Generate Mocked Response
     const dayWiseItinerary = [];
@@ -405,7 +405,7 @@ export const generateTripItinerary = asyncHandler(async (req, res) => {
             state: place.stateId.name,
             heroImage: place.images?.hero || place.images?.thumbnail || "",
             overview: place.overview || `A wonderful trip to ${place.name}, ${place.cityId.name}.`,
-            category: place.category,
+            categoryId: place.categoryId,
             bestTime: place.bestTimeToVisit
         },
         itinerary: dayWiseItinerary,

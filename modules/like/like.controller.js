@@ -7,20 +7,33 @@ import TouristPlace from "../place/place.model.js";
 import Blog from "../blog/blog.model.js";
 import Festival from "../festival/festival.model.js";
 import Notification from "../notification/notification.model.js";
+import Food from "../food/food.model.js";
+import Hotel from "../hotel/hotel.model.js";
+import Restaurant from "../restaurant/restaurant.model.js";
+import Activity from "../activity/activity.model.js";
+
 const MODEL_MAP = {
     state: State,
     city: City,
-    destination: TouristPlace,
+    place: TouristPlace,
     blog: Blog,
     festival: Festival,
+    food: Food,
+    hotel: Hotel,
+    restaurant: Restaurant,
+    activity: Activity,
 };
 
 const MODEL_NAME_MAP = {
     state: "State",
     city: "City",
-    destination: "TouristPlace",
+    place: "TouristPlace",
     blog: "Blog",
     festival: "Festival",
+    food: "Food",
+    hotel: "Hotel",
+    restaurant: "Restaurant",
+    activity: "Activity",
 };
 
 export const toggleLike = asyncHandler(async (req, res) => {
