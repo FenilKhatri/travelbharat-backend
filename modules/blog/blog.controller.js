@@ -4,17 +4,15 @@ import { generateUniqueSlug } from "../../common/utils/slug.utils.js";
 import { ITEMS_PER_PAGE } from "../../common/utils/constants.js";
 import Blog from "./blog.model.js";
 import Comment from "./comment.model.js";
-import Like from "./like.model.js";
 import SavedBlog from "./savedBlog.model.js";
 import Notification from "../notification/notification.model.js";
+import Like from "../like/like.model.js";
 
 // Helper to populate author
 const populateAuthor = {
     path: "author",
     select: "name username profileImage bio",
 };
-
-//  PUBLIC 
 
 export const getAllBlogs = asyncHandler(async (req, res) => {
     const { search, category, tag, stateId, featured, page = 1, limit = ITEMS_PER_PAGE } = req.query;
