@@ -4,7 +4,6 @@ import { generateUniqueSlug } from "../../common/utils/slug.utils.js";
 import { ITEMS_PER_PAGE } from "../../common/utils/constants.js";
 import Blog from "./blog.model.js";
 import Comment from "./comment.model.js";
-import SavedBlog from "./savedBlog.model.js";
 import Notification from "../notification/notification.model.js";
 import Like from "../like/like.model.js";
 
@@ -574,37 +573,5 @@ export const toggleLike = asyncHandler(async (req, res) => {
     }
 });
 
-export const toggleSaveBlog = asyncHandler(async (req, res) => {
-    const { blogId } = req.params;
-    const userId = req.user.id;
 
-    const existingSave = await SavedBlog.findOne({ blogId, userId });
-
-    if (existingSave) {
-        await SavedBlog.findByIdAndDelete(existingSave._id);
-        return successResponse(res, 200, "Blog removed from saved", { isSaved: false });
-    } else {
-        await SavedBlog.create({ blogId, userId });
-        const blog = await Blog.findById(blogId);
-        await Notification.create({
-            title: "Article Saved",
-            message: `You saved "${blog?.title || 'an article'}" to your collection.`,
-            type: "info",
-            user: userId,
-            link: "/user/saved-blogs"
-        });
-        return successResponse(res, 200, "Blog saved", { isSaved: true });
-    }
-});
-
-export const getSavedBlogs = asyncHandler(async (req, res) => {
-    const userId = req.user.id;
-    const saved = await SavedBlog.find({ userId }).populate({
-        path: "blogId",
-        populate: populateAuthor
-    }).sort("-createdAt");
-
-    const blogs = saved.map(s => s.blogId);
-    return successResponse(res, 200, "Saved blogs fetched", { blogs });
-});
 

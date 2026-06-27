@@ -3,7 +3,7 @@ import {
     getAllBlogs, getFeaturedBlogs, getPopularBlogs, getBlogBySlug, getRelatedBlogs, getBlogsByCategory, getBlogsByTag, getBlogCategories, getBlogTags,
     createBlog, updateBlog, deleteBlog, requestDeleteBlog, adminGetAllBlogs, adminGetBlog,
     adminGetModerationRequests, adminApproveBlog, adminRejectBlog, adminApproveEdit, adminRejectEdit, adminApproveDelete, adminRejectDelete, getUserBlogs,
-    addComment, getComments, deleteComment, toggleLike, toggleSaveBlog, getSavedBlogs, incrementBlogViews
+    addComment, getComments, deleteComment, toggleLike, incrementBlogViews
 } from "./blog.controller.js";
 import { protect } from "../../common/middlewares/auth.middleware.js";
 import { authorizeRoles } from "../../common/middlewares/role.middleware.js";
@@ -30,8 +30,6 @@ router.get("/:blogId/comments", getComments);
 router.post("/:blogId/comments", protect, addComment);
 router.delete("/comments/:id", protect, deleteComment);
 router.post("/:id/like", protect, toggleLike);
-router.post("/:blogId/save", protect, toggleSaveBlog);
-router.get("/user/saved", protect, getSavedBlogs);
 router.get("/user/my-blogs", protect, getUserBlogs);
 router.post("/create", protect, createBlog); // Allow authenticated users to create blogs
 router.put("/:id", protect, updateBlog); // Allow users to update/edit
