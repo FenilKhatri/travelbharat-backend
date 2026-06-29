@@ -6,10 +6,12 @@
   "scripts": {
     "start": "nodemon server.js",
     "dev": "nodemon server.js",
+    "migrate:state-hero": "node scripts/migrate-state-hero.js",
     "import:validate": "node scripts/importer/index.js validate",
     "import:state": "node scripts/importer/index.js state",
     "import:all": "node scripts/importer/index.js all",
-    "import:resume": "node scripts/importer/index.js state --resume"
+    "import:resume": "node scripts/importer/index.js state --resume",
+    "link:state-hero": "node scripts/link-state-hero.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

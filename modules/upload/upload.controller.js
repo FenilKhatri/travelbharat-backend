@@ -3,6 +3,7 @@ import path from "path";
 import { asyncHandler } from "../../common/middlewares/async.helper.js";
 import { successResponse, errorResponse } from "../../common/utils/responseHandler.utils.js";
 import { uploadToCloudinary } from "../../config/cloudinary.js";
+import { getMediaPath } from "./mediaPath.service.js";
 
 // Ensure local uploads directory exists
 const uploadDir = path.join(process.cwd(), "public", "uploads");
@@ -26,21 +27,28 @@ export const uploadImage = asyncHandler(async (req, res) => {
         return errorResponse(res, 400, "No image file provided");
     }
 
-    let imageUrl;
+    let mediaData;
 
     if (!process.env.CLOUDINARY_CLOUD_NAME) {
         // Fallback to local storage if Cloudinary is not configured
-        imageUrl = saveLocal(req.file, req);
+        mediaData = { url: saveLocal(req.file, req) };
     } else {
         // Upload to Cloudinary
         const b64 = Buffer.from(req.file.buffer).toString("base64");
         const dataURI = `data:${req.file.mimetype};base64,${b64}`;
-        const folder = req.body.folder || "travelbharat/general";
-        const result = await uploadToCloudinary(dataURI, folder);
-        imageUrl = result.url;
+        
+        let folder = req.body.folder || "travelbharat/general";
+        if (req.body.entityType) {
+            folder = getMediaPath(req.body);
+        }
+
+        let publicId = req.body.publicId || undefined;
+        if (req.body.category === "hero") publicId = "hero";
+
+        mediaData = await uploadToCloudinary(dataURI, folder, publicId);
     }
 
-    return successResponse(res, 200, "Image uploaded", { image: { url: imageUrl } });
+    return successResponse(res, 200, "Image uploaded", { image: mediaData });
 });
 
 // Upload multiple images
@@ -56,11 +64,18 @@ export const uploadImages = asyncHandler(async (req, res) => {
         images = req.files.map(file => ({ url: saveLocal(file, req) }));
     } else {
         // Upload to Cloudinary
-        const folder = req.body.folder || "travelbharat/general";
+        let folder = req.body.folder || "travelbharat/general";
+        if (req.body.entityType) {
+            folder = getMediaPath(req.body);
+        }
+
+        let publicId = req.body.publicId || undefined;
+        if (req.body.category === "hero") publicId = "hero";
+
         const uploadPromises = req.files.map(async (file) => {
             const b64 = Buffer.from(file.buffer).toString("base64");
             const dataURI = `data:${file.mimetype};base64,${b64}`;
-            return uploadToCloudinary(dataURI, folder);
+            return uploadToCloudinary(dataURI, folder, publicId);
         });
         images = await Promise.all(uploadPromises);
     }

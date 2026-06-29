@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { generateSlug } from "../../common/utils/slug.utils.js";
+import { mediaSchema } from "../../common/models/media.schema.js";
 
 const stateSchema = new mongoose.Schema(
     {
@@ -25,7 +26,7 @@ const stateSchema = new mongoose.Schema(
         },
         region: {
             type: String,
-            enum: ["north", "south", "east", "west", "central", "northeast"],
+            enum: ["north", "south", "east", "west", "central", "northeast", "island"],
             required: true,
         },
         tagline: {
@@ -55,6 +56,7 @@ const stateSchema = new mongoose.Schema(
                 trim: true,
             },
         ],
+        heroImage: mediaSchema,
         images: {
             hero: { url: String, publicId: String, altText: String },
             thumbnail: { url: String, publicId: String, altText: String },

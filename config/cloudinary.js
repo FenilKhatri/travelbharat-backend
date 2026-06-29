@@ -6,17 +6,25 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export const uploadToCloudinary = async (filePath, folder = "travelbharat") => {
+export const uploadToCloudinary = async (filePath, folder = "travelbharat", publicId = undefined) => {
     try {
-        const result = await cloudinary.uploader.upload(filePath, {
+        const options = {
             folder,
             resource_type: "auto",
             quality: "auto:good",
             fetch_format: "auto",
-        });
+        };
+        if (publicId) {
+            options.public_id = publicId;
+        }
+        const result = await cloudinary.uploader.upload(filePath, options);
         return {
             url: result.secure_url,
             publicId: result.public_id,
+            folder: result.folder,
+            resourceType: result.resource_type,
+            format: result.format,
+            bytes: result.bytes,
             width: result.width,
             height: result.height,
         };
