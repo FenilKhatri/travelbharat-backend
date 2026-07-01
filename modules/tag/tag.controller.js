@@ -2,6 +2,7 @@ import { asyncHandler } from "../../common/middlewares/async.helper.js";
 import { successResponse, errorResponse } from "../../common/utils/responseHandler.utils.js";
 import { generateUniqueSlug } from "../../common/utils/slug.utils.js";
 import { ITEMS_PER_PAGE } from "../../common/utils/constants.js";
+import { getPaginatedData } from "../../common/utils/pagination.utils.js";
 import Tag from "./tag.model.js";
 
 // PUBLIC
@@ -12,15 +13,19 @@ export const getTags = asyncHandler(async (req, res) => {
     if (isFeatured === "true") query.isFeatured = true;
     if (search) query.name = { $regex: search, $options: "i" };
 
-    const total = await Tag.countDocuments(query);
-    const tags = await Tag.find(query)
-        .sort("-priority")
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit));
+    const paginatedResult = await getPaginatedData(Tag, query, {
+        page,
+        limit,
+        sort: "-priority"
+    });
 
     return successResponse(res, 200, "Tags fetched", {
-        tags,
-        pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) }
+        tags: paginatedResult.items,
+        pagination: { 
+            total: paginatedResult.totalItems, 
+            page: paginatedResult.currentPage, 
+            pages: paginatedResult.totalPages 
+        }
     });
 });
 

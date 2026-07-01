@@ -2,6 +2,7 @@ import { asyncHandler } from "../../common/middlewares/async.helper.js";
 import { successResponse, errorResponse } from "../../common/utils/responseHandler.utils.js";
 import { generateUniqueSlug } from "../../common/utils/slug.utils.js";
 import { ITEMS_PER_PAGE } from "../../common/utils/constants.js";
+import { getPaginatedData } from "../../common/utils/pagination.utils.js";
 import Restaurant from "./restaurant.model.js";
 
 // PUBLIC
@@ -15,17 +16,23 @@ export const getRestaurants = asyncHandler(async (req, res) => {
     if (priceRange) query.priceRange = priceRange;
     if (search) query.name = { $regex: search, $options: "i" };
 
-    const total = await Restaurant.countDocuments(query);
-    const restaurants = await Restaurant.find(query)
-        .populate("cityId", "name slug")
-        .populate("stateId", "name slug")
-        .sort("-priority -rating")
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit));
+    const paginatedResult = await getPaginatedData(Restaurant, query, {
+        page,
+        limit,
+        sort: "-priority -rating",
+        populate: [
+            { path: "cityId", select: "name slug" },
+            { path: "stateId", select: "name slug" }
+        ]
+    });
 
     return successResponse(res, 200, "Restaurants fetched", {
-        restaurants,
-        pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) }
+        restaurants: paginatedResult.items,
+        pagination: { 
+            total: paginatedResult.totalItems, 
+            page: paginatedResult.currentPage, 
+            pages: paginatedResult.totalPages 
+        }
     });
 });
 

@@ -2,6 +2,7 @@ import { asyncHandler } from "../../common/middlewares/async.helper.js";
 import { successResponse, errorResponse } from "../../common/utils/responseHandler.utils.js";
 import { generateUniqueSlug } from "../../common/utils/slug.utils.js";
 import { ITEMS_PER_PAGE } from "../../common/utils/constants.js";
+import { getPaginatedData } from "../../common/utils/pagination.utils.js";
 import TouristPlace from "./place.model.js";
 import City from "../city/city.model.js";
 import State from "../state/state.model.js";
@@ -26,20 +27,19 @@ export const getAllPlaces = asyncHandler(async (req, res) => {
     if (featured === "true") query.featured = true;
     if (trending === "true") query.trending = true;
 
-    const total = await TouristPlace.countDocuments(query);
-    const places = await TouristPlace.find(query)
-        .populate("stateId", "name slug")
-        .populate("cityId", "name slug")
-        .populate("categoryId", "name slug")
-        .sort(sort)
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit))
-        .select("-__v");
-
-    return successResponse(res, 200, "Places fetched", {
-        places,
-        pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit), limit: parseInt(limit) },
+    const paginatedResult = await getPaginatedData(TouristPlace, query, {
+        page,
+        limit,
+        sort,
+        populate: [
+            { path: "stateId", select: "name slug" },
+            { path: "cityId", select: "name slug" },
+            { path: "categoryId", select: "name slug" }
+        ],
+        select: "-__v"
     });
+
+    return successResponse(res, 200, "Places fetched", paginatedResult);
 });
 
 export const getFeaturedPlaces = asyncHandler(async (req, res) => {
@@ -87,18 +87,20 @@ export const getPlacesByCity = asyncHandler(async (req, res) => {
     const query = { cityId: city._id, isActive: true };
     if (category) query.category = category;
 
-    const total = await TouristPlace.countDocuments(query);
-    const places = await TouristPlace.find(query)
-        .populate("stateId", "name slug")
-        .populate("categoryId", "name slug")
-        .sort("-priority -rating")
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit))
-        .select("name slug images.thumbnail categoryId rating reviewCount description entryFee timings duration");
+    const paginatedResult = await getPaginatedData(TouristPlace, query, {
+        page,
+        limit,
+        sort: "-priority -rating",
+        populate: [
+            { path: "stateId", select: "name slug" },
+            { path: "cityId", select: "name slug" }
+        ],
+        select: "name slug images.thumbnail categoryId rating reviewCount description entryFee timings duration primaryBadge badges"
+    });
 
     return successResponse(res, 200, "Places fetched", {
-        places, city: { name: city.name, slug: city.slug },
-        pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) },
+        ...paginatedResult,
+        city: { name: city.name, slug: city.slug }
     });
 });
 
@@ -110,18 +112,21 @@ export const getPlacesByState = asyncHandler(async (req, res) => {
     const query = { stateId: state._id, isActive: true };
     if (category) query.category = category;
 
-    const total = await TouristPlace.countDocuments(query);
-    const places = await TouristPlace.find(query)
-        .populate("cityId", "name slug")
-        .populate("categoryId", "name slug")
-        .sort("-priority -rating")
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit))
-        .select("name slug images.thumbnail categoryId rating reviewCount cityId");
+    const paginatedResult = await getPaginatedData(TouristPlace, query, {
+        page,
+        limit,
+        sort: "-priority -rating",
+        populate: [
+            { path: "categoryId", select: "name slug" },
+            { path: "stateId", select: "name slug" },
+            { path: "cityId", select: "name slug" }
+        ],
+        select: "name slug images.thumbnail categoryId rating reviewCount cityId primaryBadge badges"
+    });
 
     return successResponse(res, 200, "Places fetched", {
-        places, state: { name: state.name, slug: state.slug },
-        pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) },
+        ...paginatedResult,
+        state: { name: state.name, slug: state.slug }
     });
 });
 
@@ -199,19 +204,18 @@ export const adminGetAllPlaces = asyncHandler(async (req, res) => {
     if (category) query.category = category;
     if (budget) query.budget = budget;
 
-    const total = await TouristPlace.countDocuments(query);
-    const places = await TouristPlace.find(query)
-        .populate("stateId", "name slug")
-        .populate("cityId", "name slug")
-        .populate("categoryId", "name slug")
-        .sort("-priority -createdAt")
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit));
-
-    return successResponse(res, 200, "Places fetched", {
-        places,
-        pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) },
+    const paginatedResult = await getPaginatedData(TouristPlace, query, {
+        page,
+        limit,
+        sort: "-priority -createdAt",
+        populate: [
+            { path: "stateId", select: "name slug" },
+            { path: "cityId", select: "name slug" },
+            { path: "categoryId", select: "name slug" }
+        ]
     });
+
+    return successResponse(res, 200, "Places fetched", paginatedResult);
 });
 
 export const adminGetPlace = asyncHandler(async (req, res) => {

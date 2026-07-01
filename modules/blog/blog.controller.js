@@ -6,6 +6,7 @@ import Blog from "./blog.model.js";
 import Comment from "./comment.model.js";
 import Notification from "../notification/notification.model.js";
 import Like from "../like/like.model.js";
+import { getPaginatedData } from "../../common/utils/pagination.utils.js";
 
 // Helper to populate author
 const populateAuthor = {
@@ -23,18 +24,24 @@ export const getAllBlogs = asyncHandler(async (req, res) => {
     if (stateId) query.stateId = stateId;
     if (featured === "true") query.featured = true;
 
-    const total = await Blog.countDocuments(query);
-    const blogs = await Blog.find(query)
-        .populate(populateAuthor)
-        .populate("stateId", "name slug")
-        .sort("-priority -publishedAt")
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit))
-        .select("-content -travelTips -faqs");
+    const paginatedResult = await getPaginatedData(Blog, query, {
+        page,
+        limit,
+        sort: "-priority -publishedAt",
+        select: "-content -travelTips -faqs",
+        populate: [
+            populateAuthor,
+            { path: "stateId", select: "name slug" }
+        ]
+    });
 
     return successResponse(res, 200, "Blogs fetched", {
-        blogs,
-        pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) },
+        blogs: paginatedResult.items,
+        pagination: { 
+            total: paginatedResult.totalItems, 
+            page: paginatedResult.currentPage, 
+            pages: paginatedResult.totalPages 
+        },
     });
 });
 
@@ -114,18 +121,21 @@ export const getBlogsByCategory = asyncHandler(async (req, res) => {
     const { page = 1, limit = ITEMS_PER_PAGE } = req.query;
 
     const query = { isActive: true, isPublished: true, category };
-    const total = await Blog.countDocuments(query);
-
-    const blogs = await Blog.find(query)
-        .populate(populateAuthor)
-        .sort("-priority -publishedAt")
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit))
-        .select("-content -travelTips -faqs");
+    const paginatedResult = await getPaginatedData(Blog, query, {
+        page,
+        limit,
+        sort: "-priority -publishedAt",
+        select: "-content -travelTips -faqs",
+        populate: [populateAuthor]
+    });
 
     return successResponse(res, 200, `Blogs for category ${category} fetched`, {
-        blogs,
-        pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) }
+        blogs: paginatedResult.items,
+        pagination: { 
+            total: paginatedResult.totalItems, 
+            page: paginatedResult.currentPage, 
+            pages: paginatedResult.totalPages 
+        }
     });
 });
 
@@ -134,18 +144,21 @@ export const getBlogsByTag = asyncHandler(async (req, res) => {
     const { page = 1, limit = ITEMS_PER_PAGE } = req.query;
 
     const query = { isActive: true, isPublished: true, tags: { $in: [tag] } };
-    const total = await Blog.countDocuments(query);
-
-    const blogs = await Blog.find(query)
-        .populate(populateAuthor)
-        .sort("-priority -publishedAt")
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit))
-        .select("-content -travelTips -faqs");
+    const paginatedResult = await getPaginatedData(Blog, query, {
+        page,
+        limit,
+        sort: "-priority -publishedAt",
+        select: "-content -travelTips -faqs",
+        populate: [populateAuthor]
+    });
 
     return successResponse(res, 200, `Blogs for tag ${tag} fetched`, {
-        blogs,
-        pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) }
+        blogs: paginatedResult.items,
+        pagination: { 
+            total: paginatedResult.totalItems, 
+            page: paginatedResult.currentPage, 
+            pages: paginatedResult.totalPages 
+        }
     });
 });
 
@@ -326,16 +339,20 @@ export const adminGetAllBlogs = asyncHandler(async (req, res) => {
     if (search) query.title = { $regex: search, $options: "i" };
     if (category) query.category = category;
 
-    const total = await Blog.countDocuments(query);
-    const blogs = await Blog.find(query)
-        .populate(populateAuthor)
-        .sort("-createdAt")
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit));
+    const paginatedResult = await getPaginatedData(Blog, query, {
+        page,
+        limit,
+        sort: "-createdAt",
+        populate: [populateAuthor]
+    });
 
     return successResponse(res, 200, "Blogs fetched", {
-        blogs,
-        pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) },
+        blogs: paginatedResult.items,
+        pagination: { 
+            total: paginatedResult.totalItems, 
+            page: paginatedResult.currentPage, 
+            pages: paginatedResult.totalPages 
+        },
     });
 });
 
@@ -512,16 +529,19 @@ export const getComments = asyncHandler(async (req, res) => {
     const { blogId } = req.params;
     const { page = 1, limit = 10 } = req.query;
 
-    const comments = await Comment.find({ blogId })
-        .sort("-createdAt")
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit));
-
-    const total = await Comment.countDocuments({ blogId });
+    const paginatedResult = await getPaginatedData(Comment, { blogId }, {
+        page,
+        limit,
+        sort: "-createdAt"
+    });
 
     return successResponse(res, 200, "Comments fetched", {
-        comments,
-        pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) }
+        comments: paginatedResult.items,
+        pagination: { 
+            total: paginatedResult.totalItems, 
+            page: paginatedResult.currentPage, 
+            pages: paginatedResult.totalPages 
+        }
     });
 });
 

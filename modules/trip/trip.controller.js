@@ -3,6 +3,7 @@ import { successResponse, errorResponse } from "../../common/utils/responseHandl
 import SavedTrip from "./trip.model.js";
 import TouristPlace from "../place/place.model.js";
 import Notification from "../notification/notification.model.js";
+import { getPaginatedData } from "../../common/utils/pagination.utils.js";
 
 // Get user's trips
 export const getMyTrips = asyncHandler(async (req, res) => {
@@ -168,18 +169,24 @@ export const removePlaceFromTrip = asyncHandler(async (req, res) => {
 export const getPublicTrips = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10 } = req.query;
 
-    const total = await SavedTrip.countDocuments({ isPublic: true });
-    const trips = await SavedTrip.find({ isPublic: true })
-        .populate("userId", "name profileImage")
-        .populate("places.placeId", "name slug images.thumbnail")
-        .sort("-createdAt")
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit))
-        .select("name description totalDays budget tripType coverImage places userId");
+    const paginatedResult = await getPaginatedData(SavedTrip, { isPublic: true }, {
+        page,
+        limit,
+        sort: "-createdAt",
+        select: "name description totalDays budget tripType coverImage places userId",
+        populate: [
+            { path: "userId", select: "name profileImage" },
+            { path: "places.placeId", select: "name slug images.thumbnail" }
+        ]
+    });
 
     return successResponse(res, 200, "Public trips fetched", {
-        trips,
-        pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) },
+        trips: paginatedResult.items,
+        pagination: { 
+            total: paginatedResult.totalItems, 
+            page: paginatedResult.currentPage, 
+            pages: paginatedResult.totalPages 
+        },
     });
 });
 
@@ -198,17 +205,23 @@ export const adminGetAllTrips = asyncHandler(async (req, res) => {
         query.tripType = tripType;
     }
 
-    const total = await SavedTrip.countDocuments(query);
-    const trips = await SavedTrip.find(query)
-        .populate("userId", "name email profileImage")
-        .populate("places.placeId", "name slug images.thumbnail")
-        .sort("-createdAt")
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit));
+    const paginatedResult = await getPaginatedData(SavedTrip, query, {
+        page,
+        limit,
+        sort: "-createdAt",
+        populate: [
+            { path: "userId", select: "name email profileImage" },
+            { path: "places.placeId", select: "name slug images.thumbnail" }
+        ]
+    });
 
     return successResponse(res, 200, "All trips fetched for admin", {
-        trips,
-        pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) }
+        trips: paginatedResult.items,
+        pagination: { 
+            total: paginatedResult.totalItems, 
+            page: paginatedResult.currentPage, 
+            pages: paginatedResult.totalPages 
+        }
     });
 });
 

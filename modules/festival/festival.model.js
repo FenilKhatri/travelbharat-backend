@@ -113,6 +113,14 @@ const festivalSchema = new mongoose.Schema(
             default: true,
             index: true,
         },
+        badges: [
+            {
+                type: String,
+            }
+        ],
+        primaryBadge: {
+            type: String,
+        },
         createdBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",

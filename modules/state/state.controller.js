@@ -2,6 +2,7 @@ import { asyncHandler } from "../../common/middlewares/async.helper.js";
 import { successResponse, errorResponse } from "../../common/utils/responseHandler.utils.js";
 import { generateUniqueSlug } from "../../common/utils/slug.utils.js";
 import { ITEMS_PER_PAGE } from "../../common/utils/constants.js";
+import { getPaginatedData } from "../../common/utils/pagination.utils.js";
 import State from "./state.model.js";
 import Notification from "../notification/notification.model.js";
 
@@ -9,30 +10,23 @@ import Notification from "../notification/notification.model.js";
 
 // Get all states (public)
 export const getAllStates = asyncHandler(async (req, res) => {
-    const { search, region, featured, page = 1, limit = ITEMS_PER_PAGE } = req.query;
+    const { search, region, badge, featured, page = 1, limit = ITEMS_PER_PAGE } = req.query;
     const sort = req.query.sort || "-priority";
 
     const query = { isActive: true };
     if (search) query.name = { $regex: search, $options: "i" };
-    if (region) query.region = region;
+    if (region) query.region = region.toLowerCase();
+    if (badge) query.badges = badge;
     if (featured === "true") query.featured = true;
 
-    const total = await State.countDocuments(query);
-    const states = await State.find(query)
-        .sort(sort)
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit))
-        .select("-__v");
-
-    return successResponse(res, 200, "States fetched", {
-        states,
-        pagination: {
-            total,
-            page: parseInt(page),
-            pages: Math.ceil(total / limit),
-            limit: parseInt(limit),
-        },
+    const paginatedResult = await getPaginatedData(State, query, {
+        page,
+        limit,
+        sort,
+        select: "-__v"
     });
+
+    return successResponse(res, 200, "States fetched", paginatedResult);
 });
 
 // Get featured states (public)
@@ -54,6 +48,40 @@ export const getStateBySlug = asyncHandler(async (req, res) => {
     }
 
     return successResponse(res, 200, "State fetched", { state });
+});
+
+// Get available filters for states
+export const getAvailableFilters = asyncHandler(async (req, res) => {
+    // Get unique regions
+    const regions = await State.distinct("region", { isActive: true });
+    
+    return successResponse(res, 200, "State filters fetched", {
+        regions: regions.filter(Boolean)
+    });
+});
+
+// Get similar states based on shared badges
+export const getSimilarStates = asyncHandler(async (req, res) => {
+    const currentState = await State.findOne({ slug: req.params.slug, isActive: true });
+    
+    if (!currentState) {
+        return errorResponse(res, 404, "State not found");
+    }
+
+    if (!currentState.badges || currentState.badges.length === 0) {
+        return successResponse(res, 200, "Similar states fetched", { states: [] });
+    }
+
+    const similarStates = await State.find({
+        _id: { $ne: currentState._id },
+        isActive: true,
+        badges: { $in: currentState.badges }
+    })
+    .sort("-priority")
+    .limit(4)
+    .select("name slug tagline images.thumbnail images.hero primaryBadge badges totalCities totalPlaces");
+
+    return successResponse(res, 200, "Similar states fetched", { states: similarStates });
 });
 
 //  ADMIN 
@@ -104,20 +132,13 @@ export const adminGetAllStates = asyncHandler(async (req, res) => {
     if (featured === "true") query.featured = true;
     else if (featured === "false") query.featured = false;
 
-    const total = await State.countDocuments(query);
-    const states = await State.find(query)
-        .sort("-priority -createdAt")
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit));
-
-    return successResponse(res, 200, "States fetched", {
-        states,
-        pagination: {
-            total,
-            page: parseInt(page),
-            pages: Math.ceil(total / limit),
-        },
+    const paginatedResult = await getPaginatedData(State, query, {
+        page,
+        limit,
+        sort: "-priority"
     });
+
+    return successResponse(res, 200, "States fetched", paginatedResult);
 });
 
 // Get single state by ID (admin)

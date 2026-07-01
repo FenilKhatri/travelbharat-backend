@@ -176,6 +176,14 @@ const placeSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        badges: [
+            {
+                type: String,
+            }
+        ],
+        primaryBadge: {
+            type: String,
+        },
         seo: {
             metaTitle: { type: String, trim: true },
             metaDescription: { type: String, trim: true },

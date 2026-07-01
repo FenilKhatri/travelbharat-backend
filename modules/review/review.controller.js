@@ -2,6 +2,7 @@ import { asyncHandler } from "../../common/middlewares/async.helper.js";
 import { successResponse, errorResponse } from "../../common/utils/responseHandler.utils.js";
 import Review from "./review.model.js";
 import mongoose from "mongoose";
+import { getPaginatedData } from "../../common/utils/pagination.utils.js";
 
 // Helper to get the correct model for a given entity type
 const getEntityModel = (entityType) => {
@@ -28,12 +29,14 @@ export const getEntityReviews = asyncHandler(async (req, res) => {
     }
 
     const query = { entityType, entityId, isActive: true, isApproved: true };
-    const total = await Review.countDocuments(query);
-    const reviews = await Review.find(query)
-        .populate("userId", "name profileImage city")
-        .sort(sort)
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit));
+    const paginatedResult = await getPaginatedData(Review, query, {
+        page,
+        limit,
+        sort,
+        populate: [
+            { path: "userId", select: "name profileImage city" }
+        ]
+    });
 
     // Get rating distribution
     const ratingDist = await Review.aggregate([
@@ -43,9 +46,13 @@ export const getEntityReviews = asyncHandler(async (req, res) => {
     ]);
 
     return successResponse(res, 200, "Reviews fetched", {
-        reviews,
+        reviews: paginatedResult.items,
         ratingDistribution: ratingDist,
-        pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) },
+        pagination: { 
+            total: paginatedResult.totalItems, 
+            page: paginatedResult.currentPage, 
+            pages: paginatedResult.totalPages 
+        },
     });
 });
 
@@ -147,16 +154,22 @@ export const adminGetAllReviews = asyncHandler(async (req, res) => {
     if (entityType) query.entityType = entityType;
     if (entityId) query.entityId = entityId;
 
-    const total = await Review.countDocuments(query);
-    const reviews = await Review.find(query)
-        .populate("userId", "name email profileImage")
-        .sort("-createdAt")
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit));
+    const paginatedResult = await getPaginatedData(Review, query, {
+        page,
+        limit,
+        sort: "-createdAt",
+        populate: [
+            { path: "userId", select: "name email profileImage" }
+        ]
+    });
 
     return successResponse(res, 200, "Reviews fetched", {
-        reviews,
-        pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) },
+        reviews: paginatedResult.items,
+        pagination: { 
+            total: paginatedResult.totalItems, 
+            page: paginatedResult.currentPage, 
+            pages: paginatedResult.totalPages 
+        },
     });
 });
 

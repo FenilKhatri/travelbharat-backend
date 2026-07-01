@@ -2,6 +2,7 @@ import { asyncHandler } from "../../common/middlewares/async.helper.js";
 import { successResponse, errorResponse } from "../../common/utils/responseHandler.utils.js";
 import { generateUniqueSlug } from "../../common/utils/slug.utils.js";
 import { ITEMS_PER_PAGE } from "../../common/utils/constants.js";
+import { getPaginatedData } from "../../common/utils/pagination.utils.js";
 import Festival from "./festival.model.js";
 import State from "../state/state.model.js";
 
@@ -17,20 +18,19 @@ export const getAllFestivals = asyncHandler(async (req, res) => {
     if (category) query.category = category;
     if (featured === "true") query.featured = true;
 
-    const total = await Festival.countDocuments(query);
-    const festivals = await Festival.find(query)
-        .populate("stateIds", "name slug")
-        .populate("cityIds", "name slug")
-        .populate("relatedPlaces", "name slug")
-        .sort("-priority -createdAt")
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit))
-        .select("-__v");
-
-    return successResponse(res, 200, "Festivals fetched", {
-        festivals,
-        pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) },
+    const paginatedResult = await getPaginatedData(Festival, query, {
+        page,
+        limit,
+        sort: "-priority -createdAt",
+        populate: [
+            { path: "stateIds", select: "name slug" },
+            { path: "cityIds", select: "name slug" },
+            { path: "relatedPlaces", select: "name slug" }
+        ],
+        select: "-__v"
     });
+
+    return successResponse(res, 200, "Festivals fetched", paginatedResult);
 });
 
 export const getFeaturedFestivals = asyncHandler(async (req, res) => {
@@ -97,17 +97,16 @@ export const adminGetAllFestivals = asyncHandler(async (req, res) => {
     if (search) query.name = { $regex: search, $options: "i" };
     if (stateId) query.stateIds = stateId;
 
-    const total = await Festival.countDocuments(query);
-    const festivals = await Festival.find(query)
-        .populate("stateIds", "name slug")
-        .sort("-priority -createdAt")
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit));
-
-    return successResponse(res, 200, "Festivals fetched", {
-        festivals,
-        pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) },
+    const paginatedResult = await getPaginatedData(Festival, query, {
+        page,
+        limit,
+        sort: "-priority -createdAt",
+        populate: [
+            { path: "stateIds", select: "name slug" }
+        ]
     });
+
+    return successResponse(res, 200, "Festivals fetched", paginatedResult);
 });
 
 export const adminGetFestival = asyncHandler(async (req, res) => {

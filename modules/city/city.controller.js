@@ -2,6 +2,7 @@ import { asyncHandler } from "../../common/middlewares/async.helper.js";
 import { successResponse, errorResponse } from "../../common/utils/responseHandler.utils.js";
 import { generateUniqueSlug } from "../../common/utils/slug.utils.js";
 import { ITEMS_PER_PAGE } from "../../common/utils/constants.js";
+import { getPaginatedData } from "../../common/utils/pagination.utils.js";
 import City from "./city.model.js";
 import State from "../state/state.model.js";
 import Notification from "../notification/notification.model.js";
@@ -23,18 +24,17 @@ export const getAllCities = asyncHandler(async (req, res) => {
         if (stateDoc) query.stateId = stateDoc._id;
     }
 
-    const total = await City.countDocuments(query);
-    const cities = await City.find(query)
-        .populate("stateId", "name slug")
-        .sort("-priority -createdAt")
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit))
-        .select("-__v");
-
-    return successResponse(res, 200, "Cities fetched", {
-        cities,
-        pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) },
+    const paginatedResult = await getPaginatedData(City, query, {
+        page,
+        limit,
+        sort: "-priority -createdAt",
+        populate: [
+            { path: "stateId", select: "name slug" }
+        ],
+        select: "-__v"
     });
+
+    return successResponse(res, 200, "Cities fetched", paginatedResult);
 });
 
 // Get cities by state slug
@@ -112,17 +112,16 @@ export const adminGetAllCities = asyncHandler(async (req, res) => {
     if (search) query.name = { $regex: search, $options: "i" };
     if (stateId) query.stateId = stateId;
 
-    const total = await City.countDocuments(query);
-    const cities = await City.find(query)
-        .populate("stateId", "name slug")
-        .sort("-priority -createdAt")
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit));
-
-    return successResponse(res, 200, "Cities fetched", {
-        cities,
-        pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) },
+    const paginatedResult = await getPaginatedData(City, query, {
+        page,
+        limit,
+        sort: "-priority -createdAt",
+        populate: [
+            { path: "stateId", select: "name slug" }
+        ]
     });
+
+    return successResponse(res, 200, "Cities fetched", paginatedResult);
 });
 
 export const adminGetCity = asyncHandler(async (req, res) => {

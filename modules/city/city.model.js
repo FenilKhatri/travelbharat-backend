@@ -101,6 +101,14 @@ const citySchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        badges: [
+            {
+                type: String,
+            }
+        ],
+        primaryBadge: {
+            type: String,
+        },
         isActive: {
             type: Boolean,
             default: true,

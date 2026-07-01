@@ -18,6 +18,7 @@ import notificationRoutes from "../modules/notification/notification.routes.js";
 import categoryRoutes from "../modules/category/category.routes.js";
 import statsRoutes from "../modules/stats/stats.routes.js";
 import savedItemRoutes from "../modules/user/savedItem.routes.js";
+import historyRoutes from "../modules/history/history.routes.js";
 
 import foodRoutes from "../modules/food/food.routes.js";
 import hotelRoutes from "../modules/hotel/hotel.routes.js";
@@ -50,6 +51,7 @@ router.use("/tags", tagRoutes);
 router.use("/trips", tripRoutes);
 router.use("/likes", likeRoutes);
 router.use("/saved-items", savedItemRoutes);
+router.use("/history", historyRoutes);
 
 // Public Forms
 router.use("/newsletter", newsletterRoutes);

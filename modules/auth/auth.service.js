@@ -57,20 +57,21 @@ export const existingUser = async (data) => {
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-        user.failedLoginAttempts += 1;
+        const newAttempts = (user.failedLoginAttempts || 0) + 1;
+        const newLock = newAttempts >= MAX_FAILED_ATTEMPTS ? Date.now() + LOCK_TIME : user.lockUntil;
 
-        if (user.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
-            user.lockUntil = Date.now() + LOCK_TIME;
-        }
-
-        await user.save();
+        await User.updateOne(
+            { _id: user._id },
+            { $set: { failedLoginAttempts: newAttempts, lockUntil: newLock } }
+        );
         throw new AppError("Invalid credentials!", 401);
     }
 
     // Reset login attempts on success
-    user.failedLoginAttempts = 0;
-    user.lockUntil = null;
-    await user.save();
+    await User.updateOne(
+        { _id: user._id },
+        { $set: { failedLoginAttempts: 0, lockUntil: null } }
+    );
 
     user.password = undefined;
     return user;
