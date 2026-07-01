@@ -5,6 +5,7 @@ import {
     adminGetAllStates, adminGetState, getAvailableFilters,
     getSimilarStates
 } from "./state.controller.js";
+import { validateCreateState, validateUpdateState } from "./state.validation.js";
 import { protect } from "../../common/middlewares/auth.middleware.js";
 import { authorizeRoles } from "../../common/middlewares/role.middleware.js";
 import { ROLES } from "../../common/utils/constants.js";
@@ -22,8 +23,8 @@ router.get("/:slug/similar", getSimilarStates);
 router.use(protect, authorizeRoles(ROLES.ADMIN));
 router.get("/admin/all", adminGetAllStates);
 router.get("/admin/:id", adminGetState);
-router.post("/admin/create", createState);
-router.put("/admin/:id", updateState);
+router.post("/admin/create", validateCreateState, createState);
+router.put("/admin/:id", validateUpdateState, updateState);
 router.delete("/admin/:id", deleteState);
 
 export default router;

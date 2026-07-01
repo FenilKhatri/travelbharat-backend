@@ -5,13 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "nodemon server.js",
-    "dev": "nodemon server.js",
-    "migrate:state-hero": "node scripts/migrate-state-hero.js",
-    "import:validate": "node scripts/importer/index.js validate",
-    "import:state": "node scripts/importer/index.js state",
-    "import:all": "node scripts/importer/index.js all",
-    "import:resume": "node scripts/importer/index.js state --resume",
-    "link:state-hero": "node scripts/link-state-hero.js"
+    "dev": "nodemon server.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
@@ -24,6 +18,7 @@
     "express": "^4.19.2",
     "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^7.2.0",
+    "express-validator": "^7.3.2",
     "firebase-admin": "^12.1.0",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",

@@ -5,6 +5,7 @@ import { ITEMS_PER_PAGE } from "../../common/utils/constants.js";
 import { getPaginatedData } from "../../common/utils/pagination.utils.js";
 import State from "./state.model.js";
 import Notification from "../notification/notification.model.js";
+import { publicStatePopulate, adminStatePopulate } from "./state.populate.js";
 
 //  PUBLIC 
 
@@ -14,7 +15,9 @@ export const getAllStates = asyncHandler(async (req, res) => {
     const sort = req.query.sort || "-priority";
 
     const query = { isActive: true };
-    if (search) query.name = { $regex: search, $options: "i" };
+    if (search) {
+        query.$text = { $search: search };
+    }
     if (region) query.region = region.toLowerCase();
     if (badge) query.badges = badge;
     if (featured === "true") query.featured = true;
@@ -42,10 +45,7 @@ export const getFeaturedStates = asyncHandler(async (req, res) => {
 // Get state by slug (public)
 export const getStateBySlug = asyncHandler(async (req, res) => {
     const state = await State.findOne({ slug: req.params.slug, isActive: true })
-        .populate("featuredAttractions.place", "name slug images.thumbnail category rating reviewCount")
-        .populate("featuredFestivals.festival", "name slug images.thumbnail month category")
-        .populate("featuredCuisine.food", "name slug image cuisine isVeg")
-        .populate("nearbyStates", "name slug images.thumbnail tagline region");
+        .populate(publicStatePopulate);
 
     if (!state) {
         return errorResponse(res, 404, "State not found");
@@ -119,9 +119,9 @@ export const updateState = asyncHandler(async (req, res) => {
     return successResponse(res, 200, "State updated", { state });
 });
 
-// Delete state (admin)
+// Delete state (admin) - Soft delete
 export const deleteState = asyncHandler(async (req, res) => {
-    const state = await State.findByIdAndDelete(req.params.id);
+    const state = await State.findByIdAndUpdate(req.params.id, { isActive: false }, { new: true });
     if (!state) return errorResponse(res, 404, "State not found");
     return successResponse(res, 200, "State deleted");
 });
@@ -131,7 +131,9 @@ export const adminGetAllStates = asyncHandler(async (req, res) => {
     const { search, region, featured, page = 1, limit = 20 } = req.query;
 
     const query = {};
-    if (search) query.name = { $regex: search, $options: "i" };
+    if (search) {
+        query.$text = { $search: search };
+    }
     if (region) query.region = region;
     if (featured === "true") query.featured = true;
     else if (featured === "false") query.featured = false;
@@ -147,7 +149,7 @@ export const adminGetAllStates = asyncHandler(async (req, res) => {
 
 // Get single state by ID (admin)
 export const adminGetState = asyncHandler(async (req, res) => {
-    const state = await State.findById(req.params.id);
+    const state = await State.findById(req.params.id).populate(adminStatePopulate);
     if (!state) return errorResponse(res, 404, "State not found");
     return successResponse(res, 200, "State fetched", { state });
 });

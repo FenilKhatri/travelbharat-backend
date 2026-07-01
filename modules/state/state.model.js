@@ -315,6 +315,17 @@ stateSchema.virtual("foods", {
     foreignField: "stateIds",
 });
 
+// Indexes
+stateSchema.index({ region: 1, isActive: 1 });
+stateSchema.index({ featured: 1, priority: -1 });
+stateSchema.index({
+    name: "text",
+    tagline: "text",
+    heroDescription: "text",
+});
+stateSchema.index({ stateCode: 1 }, { sparse: true });
+
+
 const State = mongoose.model("State", stateSchema);
 
 export default State;
