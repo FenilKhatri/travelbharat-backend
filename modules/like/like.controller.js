@@ -69,7 +69,10 @@ export const toggleLike = asyncHandler(async (req, res) => {
              entityExists.likes = Math.max(0, entityExists.likes - 1);
         }
         await entityExists.save();
-        return successResponse(res, 200, "Like removed", { isLiked: false });
+        return successResponse(res, 200, "Like removed", { 
+            isLiked: false,
+            likeCount: entityExists.likeCount !== undefined ? entityExists.likeCount : entityExists.likes
+        });
     } else {
         await UniversalLike.create({
             userId: req.user.id,
@@ -92,7 +95,10 @@ export const toggleLike = asyncHandler(async (req, res) => {
             link: "/user/likes"
         });
 
-        return successResponse(res, 200, "Like added", { isLiked: true });
+        return successResponse(res, 200, "Like added", { 
+            isLiked: true,
+            likeCount: entityExists.likeCount !== undefined ? entityExists.likeCount : entityExists.likes
+        });
     }
 });
 

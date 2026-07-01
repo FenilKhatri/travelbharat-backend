@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 import { generateSlug } from "../../common/utils/slug.utils.js";
-import { mediaSchema } from "../../common/models/media.schema.js";
 
 const stateSchema = new mongoose.Schema(
     {
@@ -33,13 +32,6 @@ const stateSchema = new mongoose.Schema(
             type: String,
             trim: true,
         },
-        description: {
-            type: String,
-            required: [true, "Description is required"],
-        },
-        overview: {
-            type: String,
-        },
         capital: {
             type: String,
             required: true,
@@ -56,14 +48,193 @@ const stateSchema = new mongoose.Schema(
                 trim: true,
             },
         ],
-        heroImage: mediaSchema,
+        mapCoordinates: {
+            type: { type: String, enum: ["Point"], default: "Point" },
+            coordinates: { type: [Number] }, // [longitude, latitude]
+        },
+        
+        // 1. Hero
+        heroDescription: {
+            type: String,
+            trim: true,
+            default: "", // Will be populated in migration from description
+        },
+        ctaLabel: {
+            type: String,
+            default: "Explore State",
+            trim: true,
+        },
+        
+        // 2. Quick Facts (Presentation layer)
+        quickFacts: [
+            {
+                title: String,
+                value: String,
+                icon: String, // React Icons name e.g. "FiMap"
+            }
+        ],
+
+        // 3. Why Visit
+        whyVisit: [
+            {
+                title: String,
+                description: String,
+                icon: String,
+                image: { url: String, publicId: String, altText: String },
+            }
+        ],
+
+        // 4. Discover Sections
+        discoverSections: [
+            {
+                title: String,
+                subtitle: String,
+                icon: String,
+                image: { url: String, publicId: String, altText: String },
+                description: String,
+                order: { type: Number, default: 0 }
+            }
+        ],
+
+        // 5. History Timeline
+        historyTimeline: [
+            {
+                year: String,
+                title: String,
+                description: String,
+                image: { url: String, publicId: String, altText: String },
+                order: { type: Number, default: 0 }
+            }
+        ],
+
+        // 6. Experiences
+        experiences: [
+            {
+                title: String,
+                description: String,
+                icon: String,
+                category: String,
+                image: { url: String, publicId: String, altText: String },
+            }
+        ],
+
+        // 7. Featured Attractions (FK)
+        featuredAttractions: [
+            {
+                place: { type: mongoose.Schema.Types.ObjectId, ref: "TouristPlace" },
+                category: String,
+                shortDescription: String,
+                priority: { type: Number, default: 0 }
+            }
+        ],
+
+        // 8. Featured Festivals (FK)
+        featuredFestivals: [
+            {
+                festival: { type: mongoose.Schema.Types.ObjectId, ref: "Festival" },
+                month: String,
+                description: String,
+            }
+        ],
+
+        // 9. Featured Cuisine (FK)
+        featuredCuisine: [
+            {
+                food: { type: mongoose.Schema.Types.ObjectId, ref: "Food" },
+                description: String,
+            }
+        ],
+
+        // 10. Wildlife Highlights
+        wildlifeHighlights: [
+            {
+                title: String,
+                description: String,
+                image: { url: String, publicId: String, altText: String },
+                icon: String,
+            }
+        ],
+
+        // 11. Seasons
+        seasons: [
+            {
+                season: String, // e.g. "Summer", "Winter", "Monsoon"
+                months: String, // e.g. "April - June"
+                temperature: String, // e.g. "25°C - 40°C"
+                recommended: { type: Boolean, default: false },
+                description: String,
+            }
+        ],
+
+        // 12. Travel Info
+        travelInfo: {
+            byAir: String,
+            byTrain: String,
+            byRoad: String,
+            localTransport: String,
+            airport: String,
+            nearestMajorCity: String,
+        },
+
+        // 13. Travel Tips
+        travelTips: [
+            {
+                icon: String,
+                title: String,
+                description: String,
+            }
+        ],
+
+        // 14. Fun Facts
+        funFacts: [
+            {
+                title: String,
+                value: String,
+                icon: String,
+            }
+        ],
+
+        // 15. FAQ
+        faq: [
+            {
+                question: String,
+                answer: String,
+            }
+        ],
+
+        // 16. Nearby States (FK)
+        nearbyStates: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "State"
+            }
+        ],
+
         images: {
             hero: { url: String, publicId: String, altText: String },
             thumbnail: { url: String, publicId: String, altText: String },
-            gallery: [
-                { url: String, publicId: String, altText: String }
-            ],
         },
+        
+        // 17. Categorized Gallery
+        gallery: [
+            {
+                url: String, 
+                publicId: String, 
+                altText: String,
+                category: {
+                    type: String,
+                    enum: [
+                        "hero", "landscape", "heritage", "wildlife", "cuisine", 
+                        "festivals", "adventure", "cities", "people", 
+                        "spirituality", "architecture", "culture"
+                    ],
+                    default: "landscape"
+                },
+                priority: { type: Number, default: 0 },
+                featured: { type: Boolean, default: false }
+            }
+        ],
+
         stateBranding: {
             leftBackground: { url: String, publicId: String },
             rightBackground: { url: String, publicId: String },
@@ -71,92 +242,44 @@ const stateSchema = new mongoose.Schema(
             overlayImage: { url: String, publicId: String },
             primaryColor: String,
         },
-        highlights: [
-            {
-                title: String,
-                description: String,
-                icon: String,
-            },
-        ],
-        history: {
-            type: String,
-        },
-        culture: {
-            type: String,
-        },
-        weather: {
-            summer: String,
-            winter: String,
-            monsoon: String,
-            bestSeason: String,
-        },
-        transport: {
-            byAir: String,
-            byTrain: String,
-            byRoad: String,
-            local: String,
-        },
-        travelTips: [
-            {
-                type: String,
-            },
-        ],
-        mapCoordinates: {
-            type: {
-                type: String,
-                enum: ["Point"],
-                default: "Point",
-            },
-            coordinates: {
-                type: [Number], // [longitude, latitude]
-            },
-        },
+
         seo: {
             metaTitle: { type: String, trim: true },
             metaDescription: { type: String, trim: true },
             keywords: [{ type: String, trim: true }],
         },
-        totalCities: {
-            type: Number,
-            default: 0,
+        
+        badges: [{ type: String }],
+        primaryBadge: { type: String },
+        featured: { type: Boolean, default: false },
+        isActive: { type: Boolean, default: true, index: true },
+        priority: { type: Number, default: 0 },
+        
+        totalCities: { type: Number, default: 0 },
+        totalPlaces: { type: Number, default: 0 },
+        likeCount: { type: Number, default: 0 },
+        
+        createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+
+        _legacy_description: String,
+        _legacy_overview: String,
+        _legacy_history: String,
+        _legacy_culture: String,
+        _legacy_weather: {
+            summer: String,
+            winter: String,
+            monsoon: String,
+            bestSeason: String,
         },
-        totalPlaces: {
-            type: Number,
-            default: 0,
+        _legacy_transport: {
+            byAir: String,
+            byTrain: String,
+            byRoad: String,
+            local: String,
         },
-        likeCount: {
-            type: Number,
-            default: 0,
-        },
-        priority: {
-            type: Number,
-            default: 0,
-        },
-        featured: {
-            type: Boolean,
-            default: false,
-        },
-        badges: [
-            {
-                type: String,
-            }
-        ],
-        primaryBadge: {
-            type: String,
-        },
-        isActive: {
-            type: Boolean,
-            default: true,
-            index: true,
-        },
-        createdBy: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
-        },
-        updatedBy: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
-        },
+        _legacy_highlights: [{ title: String, description: String, icon: String }],
+        _legacy_travelTips: [{ type: String }]
     },
     {
         timestamps: true,
@@ -165,30 +288,7 @@ const stateSchema = new mongoose.Schema(
     }
 );
 
-// Indexes
-stateSchema.index({ priority: -1 });
-stateSchema.index({ featured: -1 });
-stateSchema.index({ region: 1 });
-stateSchema.index({ "mapCoordinates": "2dsphere" });
-
-// Virtuals
-stateSchema.virtual("cities", {
-    ref: "City",
-    localField: "_id",
-    foreignField: "stateId",
-});
-stateSchema.virtual("festivals", {
-    ref: "Festival",
-    localField: "_id",
-    foreignField: "stateIds",
-});
-stateSchema.virtual("foods", {
-    ref: "Food",
-    localField: "_id",
-    foreignField: "stateIds",
-});
-
-// Pre-validate hook for slug generation
+// Slug Generation
 stateSchema.pre("validate", function (next) {
     if (this.name && !this.slug) {
         this.slug = generateSlug(this.name);
@@ -196,5 +296,25 @@ stateSchema.pre("validate", function (next) {
     next();
 });
 
+// Virtual Relations
+stateSchema.virtual("cities", {
+    ref: "City",
+    localField: "_id",
+    foreignField: "stateId",
+});
+
+stateSchema.virtual("festivals", {
+    ref: "Festival",
+    localField: "_id",
+    foreignField: "stateIds",
+});
+
+stateSchema.virtual("foods", {
+    ref: "Food",
+    localField: "_id",
+    foreignField: "stateIds",
+});
+
 const State = mongoose.model("State", stateSchema);
+
 export default State;

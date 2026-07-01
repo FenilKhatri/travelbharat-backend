@@ -34,14 +34,18 @@ export const getFeaturedStates = asyncHandler(async (req, res) => {
     const states = await State.find({ isActive: true, featured: true })
         .sort("-priority")
         .limit(8)
-        .select("name slug tagline images.thumbnail images.hero totalCities totalPlaces");
+        .select("name slug tagline heroDescription quickFacts images.thumbnail images.hero totalCities totalPlaces");
 
     return successResponse(res, 200, "Featured states fetched", { states });
 });
 
 // Get state by slug (public)
 export const getStateBySlug = asyncHandler(async (req, res) => {
-    const state = await State.findOne({ slug: req.params.slug, isActive: true });
+    const state = await State.findOne({ slug: req.params.slug, isActive: true })
+        .populate("featuredAttractions.place", "name slug images.thumbnail category rating reviewCount")
+        .populate("featuredFestivals.festival", "name slug images.thumbnail month category")
+        .populate("featuredCuisine.food", "name slug image cuisine isVeg")
+        .populate("nearbyStates", "name slug images.thumbnail tagline region");
 
     if (!state) {
         return errorResponse(res, 404, "State not found");
