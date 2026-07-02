@@ -3,6 +3,7 @@ import {
     getAllCities, getCitiesByState, getCityBySlug, getFeaturedCities,
     createCity, updateCity, deleteCity, adminGetAllCities, adminGetCity
 } from "./city.controller.js";
+import { validateCreateCity, validateUpdateCity } from "./city.validation.js";
 import { protect } from "../../common/middlewares/auth.middleware.js";
 import { authorizeRoles } from "../../common/middlewares/role.middleware.js";
 import { ROLES } from "../../common/utils/constants.js";
@@ -19,8 +20,8 @@ router.get("/:citySlug", getCityBySlug);
 router.use(protect, authorizeRoles(ROLES.ADMIN));
 router.get("/admin/all", adminGetAllCities);
 router.get("/admin/:id", adminGetCity);
-router.post("/admin/create", createCity);
-router.put("/admin/:id", updateCity);
+router.post("/admin/create", validateCreateCity, createCity);
+router.patch("/admin/:id", validateUpdateCity, updateCity);
 router.delete("/admin/:id", deleteCity);
 
 export default router;

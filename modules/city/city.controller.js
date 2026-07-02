@@ -6,6 +6,7 @@ import { getPaginatedData } from "../../common/utils/pagination.utils.js";
 import City from "./city.model.js";
 import State from "../state/state.model.js";
 import Notification from "../notification/notification.model.js";
+import cityService from "./city.service.js";
 
 //  PUBLIC 
 
@@ -49,11 +50,21 @@ export const getCitiesByState = asyncHandler(async (req, res) => {
     return successResponse(res, 200, "Cities fetched", { cities, state: { name: state.name, slug: state.slug } });
 });
 
-// Get city by slug
+// Get city by slug (DEPRECATED: Use getCityByStateAndSlug instead)
 export const getCityBySlug = asyncHandler(async (req, res) => {
     const city = await City.findOne({ slug: req.params.citySlug, isActive: true })
         .populate("stateId", "name slug languages travelTips")
         .populate("destinations", "name slug images.thumbnail category rating reviewCount description entryFee timings duration priority isActive");
+
+    if (!city) return errorResponse(res, 404, "City not found");
+    return successResponse(res, 200, "City fetched", { city });
+});
+
+// Get city by state slug and city slug
+export const getCityByStateAndSlug = asyncHandler(async (req, res) => {
+    const { stateSlug, citySlug } = req.params;
+    
+    const city = await cityService.getCityByStateAndSlug(stateSlug, citySlug);
 
     if (!city) return errorResponse(res, 404, "City not found");
     return successResponse(res, 200, "City fetched", { city });
@@ -73,12 +84,10 @@ export const getFeaturedCities = asyncHandler(async (req, res) => {
 //  ADMIN 
 
 export const createCity = asyncHandler(async (req, res) => {
-    const slug = await generateUniqueSlug(City, req.body.name);
+    const safeData = cityService.whitelistData(req.body);
+    const slug = await generateUniqueSlug(City, safeData.name);
 
-    const city = await City.create({ ...req.body, slug });
-
-    // Update state totalCities count
-    await State.findByIdAndUpdate(req.body.stateId, { $inc: { totalCities: 1 } });
+    const city = await City.create({ ...safeData, slug });
 
     await Notification.create({
         title: "New City Added",
@@ -91,18 +100,24 @@ export const createCity = asyncHandler(async (req, res) => {
 
 export const updateCity = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    if (req.body.name) {
-        req.body.slug = await generateUniqueSlug(City, req.body.name, id);
+    const safeData = cityService.whitelistData(req.body);
+    
+    if (safeData.name) {
+        safeData.slug = await generateUniqueSlug(City, safeData.name, id);
     }
-    const city = await City.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
+    const city = await City.findByIdAndUpdate(id, safeData, { new: true, runValidators: true });
     if (!city) return errorResponse(res, 404, "City not found");
     return successResponse(res, 200, "City updated", { city });
 });
 
 export const deleteCity = asyncHandler(async (req, res) => {
+    const canDelete = await cityService.checkDependencies(req.params.id);
+    if (!canDelete) {
+        return errorResponse(res, 400, "Cannot delete city. It is referenced by one or more TouristPlaces.");
+    }
+
     const city = await City.findByIdAndDelete(req.params.id);
     if (!city) return errorResponse(res, 404, "City not found");
-    await State.findByIdAndUpdate(city.stateId, { $inc: { totalCities: -1 } });
     return successResponse(res, 200, "City deleted");
 });
 

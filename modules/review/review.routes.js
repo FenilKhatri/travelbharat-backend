@@ -17,23 +17,22 @@ import { authorizeRoles } from "../../common/middlewares/role.middleware.js";
 
 const router = express.Router();
 
-// Public
+// User (Requires Authentication)
+router.get("/user/me", protect, getMyReviews);
+router.post("/", protect, createReview);
+router.put("/:id", protect, updateReview);
+router.delete("/:id", protect, deleteOwnReview);
+
+// Admin (Requires Admin Role)
+const adminAuth = [protect, authorizeRoles("admin")];
+router.get("/admin/all", adminAuth, adminGetAllReviews);
+router.get("/admin/:id", adminAuth, adminGetReview);
+router.patch("/admin/:id/approve", adminAuth, approveReview);
+router.patch("/admin/:id/reject", adminAuth, rejectReview);
+router.patch("/admin/:id/respond", adminAuth, adminRespondToReview);
+router.delete("/admin/:id", adminAuth, adminDeleteReview);
+
+// Public (Must be last to avoid catching /admin/all or /user/me)
 router.get("/:entityType/:entityId", getEntityReviews);
-
-// User
-router.use(protect);
-router.get("/user/me", getMyReviews);
-router.post("/", createReview);
-router.put("/:id", updateReview);
-router.delete("/:id", deleteOwnReview);
-
-// Admin
-router.use(authorizeRoles("admin"));
-router.get("/admin/all", adminGetAllReviews);
-router.get("/admin/:id", adminGetReview);
-router.patch("/admin/:id/approve", approveReview);
-router.patch("/admin/:id/reject", rejectReview);
-router.patch("/admin/:id/respond", adminRespondToReview);
-router.delete("/admin/:id", adminDeleteReview);
 
 export default router;

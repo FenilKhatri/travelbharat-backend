@@ -9,7 +9,7 @@ import { getPaginatedData } from "../../common/utils/pagination.utils.js";
 export const getMyTrips = asyncHandler(async (req, res) => {
     let trips = await SavedTrip.find({ userId: req.user.id })
         .populate("destinationId", "name slug images categoryId stateId cityId")
-        .populate("places.placeId", "name slug heroImage images categoryId stateId cityId")
+        .populate("itinerary.activities.placeId", "name slug heroImage images categoryId stateId cityId")
         .sort("-updatedAt");
 
     const now = new Date();
@@ -40,7 +40,7 @@ export const getTrip = asyncHandler(async (req, res) => {
     let trip = await SavedTrip.findOne({ _id: req.params.id, userId: req.user.id })
         .populate("destinationId", "name slug images categoryId stateId cityId overview timings location bestTimeToVisit highlights travelTips")
         .populate({
-            path: "places.placeId",
+            path: "itinerary.activities.placeId",
             populate: [
                 { path: "stateId", select: "name heroImage images" },
                 { path: "cityId", select: "name images" }
@@ -176,7 +176,7 @@ export const getPublicTrips = asyncHandler(async (req, res) => {
         select: "name description totalDays budget tripType coverImage places userId",
         populate: [
             { path: "userId", select: "name profileImage" },
-            { path: "places.placeId", select: "name slug images.thumbnail" }
+            { path: "itinerary.activities.placeId", select: "name slug images.thumbnail" }
         ]
     });
 
@@ -211,7 +211,7 @@ export const adminGetAllTrips = asyncHandler(async (req, res) => {
         sort: "-createdAt",
         populate: [
             { path: "userId", select: "name email profileImage" },
-            { path: "places.placeId", select: "name slug images.thumbnail" }
+            { path: "itinerary.activities.placeId", select: "name slug images.thumbnail" }
         ]
     });
 
@@ -230,7 +230,7 @@ export const adminGetTrip = asyncHandler(async (req, res) => {
     const trip = await SavedTrip.findById(req.params.id)
         .populate("userId", "name email profileImage")
         .populate({
-            path: "places.placeId",
+            path: "itinerary.activities.placeId",
             populate: [
                 { path: "stateId", select: "name images" },
                 { path: "cityId", select: "name images" }

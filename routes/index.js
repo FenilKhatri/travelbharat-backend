@@ -4,6 +4,7 @@ import authRoutes from "../modules/auth/auth.routes.js";
 import adminRoutes from "../modules/admin/admin.routes.js";
 import stateRoutes from "../modules/state/state.routes.js";
 import cityRoutes from "../modules/city/city.routes.js";
+import { getCityByStateAndSlug } from "../modules/city/city.controller.js";
 import placeRoutes from "../modules/place/place.routes.js";
 import blogRoutes from "../modules/blog/blog.routes.js";
 import festivalRoutes from "../modules/festival/festival.routes.js";
@@ -33,6 +34,7 @@ router.use("/auth", authRoutes);
 
 // Public Content
 router.use("/states", stateRoutes);
+router.get("/states/:stateSlug/cities/:citySlug", getCityByStateAndSlug);
 router.use("/cities", cityRoutes);
 router.use("/places", placeRoutes);
 router.use("/blogs", blogRoutes);

@@ -54,9 +54,8 @@ const blogSchema = new mongoose.Schema(
         rejectionReason: {
             type: String,
         },
-        categoryId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Category",
+        category: {
+            type: String,
             required: true,
             index: true,
         },
@@ -79,8 +78,8 @@ const blogSchema = new mongoose.Schema(
         ],
         tags: [
             {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "Tag",
+                type: String,
+                trim: true,
                 index: true,
             },
         ],
@@ -153,7 +152,7 @@ const blogSchema = new mongoose.Schema(
 
 // Indexes
 blogSchema.index({ status: 1, publishedAt: -1 });
-blogSchema.index({ categoryId: 1, status: 1 });
+blogSchema.index({ category: 1, status: 1 });
 blogSchema.index({ author: 1, status: 1 });
 
 // Pre-validate hook for slug generation

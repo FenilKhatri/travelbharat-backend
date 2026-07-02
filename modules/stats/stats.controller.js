@@ -53,7 +53,7 @@ export const getStatesDestinationCounts = asyncHandler(async (req, res) => {
 export const getUserDashboardStats = asyncHandler(async (req, res) => {
     const userId = req.user.id;
 
-    const trips = await SavedTrip.find({ userId }).populate("places.placeId").lean();
+    const trips = await SavedTrip.find({ userId }).populate("itinerary.activities.placeId").lean();
     const likes = await UniversalLike.find({ userId }).populate("entityId").lean();
     const reviews = await Review.find({ userId }).lean();
     const writtenBlogs = await Blog.find({ author: userId }).lean();

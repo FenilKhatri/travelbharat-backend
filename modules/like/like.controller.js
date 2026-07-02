@@ -63,15 +63,18 @@ export const toggleLike = asyncHandler(async (req, res) => {
 
     if (existingLike) {
         await existingLike.deleteOne();
-        if (entityExists.likeCount !== undefined) {
-             entityExists.likeCount = Math.max(0, entityExists.likeCount - 1);
-        } else if (entityExists.likes !== undefined) {
-             entityExists.likes = Math.max(0, entityExists.likes - 1);
-        }
-        await entityExists.save();
+        
+        const updateField = entityExists.likeCount !== undefined ? "likeCount" : "likes";
+        
+        const updatedEntity = await Model.findByIdAndUpdate(
+            entityId,
+            { $inc: { [updateField]: -1 } },
+            { new: true }
+        );
+
         return successResponse(res, 200, "Like removed", { 
             isLiked: false,
-            likeCount: entityExists.likeCount !== undefined ? entityExists.likeCount : entityExists.likes
+            likeCount: updatedEntity[updateField] < 0 ? 0 : updatedEntity[updateField]
         });
     } else {
         await UniversalLike.create({
@@ -80,12 +83,14 @@ export const toggleLike = asyncHandler(async (req, res) => {
             entityId,
             entityModel: entityModelName,
         });
-        if (entityExists.likeCount !== undefined) {
-             entityExists.likeCount += 1;
-        } else if (entityExists.likes !== undefined) {
-             entityExists.likes += 1;
-        }
-        await entityExists.save();
+        
+        const updateField = entityExists.likeCount !== undefined ? "likeCount" : "likes";
+
+        const updatedEntity = await Model.findByIdAndUpdate(
+            entityId,
+            { $inc: { [updateField]: 1 } },
+            { new: true }
+        );
 
         await Notification.create({
             user: req.user.id,
@@ -97,7 +102,7 @@ export const toggleLike = asyncHandler(async (req, res) => {
 
         return successResponse(res, 200, "Like added", { 
             isLiked: true,
-            likeCount: entityExists.likeCount !== undefined ? entityExists.likeCount : entityExists.likes
+            likeCount: updatedEntity[updateField]
         });
     }
 });

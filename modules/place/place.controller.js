@@ -164,10 +164,6 @@ export const createPlace = asyncHandler(async (req, res) => {
     const slug = await generateUniqueSlug(TouristPlace, req.body.name);
     const place = await TouristPlace.create({ ...req.body, slug });
 
-    // Update counts
-    await City.findByIdAndUpdate(req.body.cityId, { $inc: { totalPlaces: 1 } });
-    await State.findByIdAndUpdate(req.body.stateId, { $inc: { totalPlaces: 1 } });
-
     await Notification.create({
         title: "New Destination Added",
         message: `A new destination "${place.name}" has been added.`,
@@ -190,8 +186,6 @@ export const updatePlace = asyncHandler(async (req, res) => {
 export const deletePlace = asyncHandler(async (req, res) => {
     const place = await TouristPlace.findByIdAndDelete(req.params.id);
     if (!place) return errorResponse(res, 404, "Place not found");
-    await City.findByIdAndUpdate(place.cityId, { $inc: { totalPlaces: -1 } });
-    await State.findByIdAndUpdate(place.stateId, { $inc: { totalPlaces: -1 } });
     return successResponse(res, 200, "Place deleted");
 });
 

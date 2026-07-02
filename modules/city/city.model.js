@@ -31,9 +31,17 @@ const citySchema = new mongoose.Schema(
             type: String,
             trim: true,
         },
+        focus: {
+            type: String,
+        },
+        attractions: {
+            type: String,
+        },
+        experiences: {
+            type: String,
+        },
         description: {
             type: String,
-            required: [true, "Description is required"],
         },
         overview: {
             type: String,
@@ -52,8 +60,6 @@ const citySchema = new mongoose.Schema(
             busStation: String,
         },
         emergencyInfo: {
-            police: String,
-            ambulance: String,
             hospital: String,
             fireBrigade: String,
             touristHelpline: String,
@@ -158,6 +164,35 @@ citySchema.virtual("restaurants", {
 citySchema.pre("validate", function (next) {
     if (this.name && !this.slug) {
         this.slug = generateSlug(this.name);
+    }
+    next();
+});
+
+// Middleware for Auto Counters
+citySchema.pre("save", function (next) {
+    this.wasNew = this.isNew;
+    next();
+});
+
+citySchema.post("save", async function (doc, next) {
+    // Only increment when a new city is created
+    if (doc && this.wasNew) {
+        try {
+            await mongoose.model("State").findByIdAndUpdate(doc.stateId, { $inc: { totalCities: 1 } });
+        } catch (error) {
+            console.error("Error updating state totalCities on save:", error);
+        }
+    }
+    next();
+});
+
+citySchema.post("findOneAndDelete", async function (doc, next) {
+    if (doc) {
+        try {
+            await mongoose.model("State").findByIdAndUpdate(doc.stateId, { $inc: { totalCities: -1 } });
+        } catch (error) {
+            console.error("Error updating state totalCities on delete:", error);
+        }
     }
     next();
 });

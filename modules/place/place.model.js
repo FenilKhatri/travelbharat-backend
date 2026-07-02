@@ -231,5 +231,44 @@ placeSchema.pre("validate", function (next) {
     next();
 });
 
+// Middleware for Auto Counters
+placeSchema.pre("save", function (next) {
+    this.wasNew = this.isNew;
+    next();
+});
+
+placeSchema.post("save", async function (doc, next) {
+    // Only increment when a new place is created
+    if (doc && this.wasNew) {
+        try {
+            if (doc.stateId) {
+                await mongoose.model("State").findByIdAndUpdate(doc.stateId, { $inc: { totalPlaces: 1 } });
+            }
+            if (doc.cityId) {
+                await mongoose.model("City").findByIdAndUpdate(doc.cityId, { $inc: { totalPlaces: 1 } });
+            }
+        } catch (error) {
+            console.error("Error updating totalPlaces on save:", error);
+        }
+    }
+    next();
+});
+
+placeSchema.post("findOneAndDelete", async function (doc, next) {
+    if (doc) {
+        try {
+            if (doc.stateId) {
+                await mongoose.model("State").findByIdAndUpdate(doc.stateId, { $inc: { totalPlaces: -1 } });
+            }
+            if (doc.cityId) {
+                await mongoose.model("City").findByIdAndUpdate(doc.cityId, { $inc: { totalPlaces: -1 } });
+            }
+        } catch (error) {
+            console.error("Error updating totalPlaces on delete:", error);
+        }
+    }
+    next();
+});
+
 const TouristPlace = mongoose.model("TouristPlace", placeSchema);
 export default TouristPlace;

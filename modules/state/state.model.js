@@ -66,13 +66,10 @@ const stateSchema = new mongoose.Schema(
         },
         
         // 2. Quick Facts (Presentation layer)
-        quickFacts: [
-            {
-                title: String,
-                value: String,
-                icon: String, // React Icons name e.g. "FiMap"
-            }
-        ],
+        quickFacts: {
+            type: Map,
+            of: String
+        },
 
         // 3. Why Visit
         whyVisit: [
@@ -121,27 +118,24 @@ const stateSchema = new mongoose.Schema(
         // 7. Featured Attractions (FK)
         featuredAttractions: [
             {
-                place: { type: mongoose.Schema.Types.ObjectId, ref: "TouristPlace" },
-                category: String,
-                shortDescription: String,
-                priority: { type: Number, default: 0 }
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "TouristPlace"
             }
         ],
 
         // 8. Featured Festivals (FK)
         featuredFestivals: [
             {
-                festival: { type: mongoose.Schema.Types.ObjectId, ref: "Festival" },
-                month: String,
-                description: String,
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Festival"
             }
         ],
 
         // 9. Featured Cuisine (FK)
         featuredCuisine: [
             {
-                food: { type: mongoose.Schema.Types.ObjectId, ref: "Food" },
-                description: String,
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Food"
             }
         ],
 
@@ -186,13 +180,7 @@ const stateSchema = new mongoose.Schema(
         ],
 
         // 14. Fun Facts
-        funFacts: [
-            {
-                title: String,
-                value: String,
-                icon: String,
-            }
-        ],
+        funFacts: [{ type: String }],
 
         // 15. FAQ
         faq: [
