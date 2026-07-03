@@ -5,7 +5,7 @@ import {
     adminGetModerationRequests, adminApproveBlog, adminRejectBlog, adminApproveEdit, adminRejectEdit, adminApproveDelete, adminRejectDelete, getUserBlogs,
     addComment, getComments, deleteComment, toggleLike, incrementBlogViews
 } from "./blog.controller.js";
-import { protect } from "../../common/middlewares/auth.middleware.js";
+import { protect, optionalAuth } from "../../common/middlewares/auth.middleware.js";
 import { authorizeRoles } from "../../common/middlewares/role.middleware.js";
 import { ROLES } from "../../common/utils/constants.js";
 
@@ -20,7 +20,7 @@ router.get("/tags", getBlogTags);
 router.get("/category/:category", getBlogsByCategory);
 router.get("/tag/:tag", getBlogsByTag);
 router.get("/related/:slug", getRelatedBlogs);
-router.get("/:slug", getBlogBySlug);
+router.get("/:slug", optionalAuth, getBlogBySlug);
 router.post("/:slug/view", incrementBlogViews);
 
 // Public Interactions

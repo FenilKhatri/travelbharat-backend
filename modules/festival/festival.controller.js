@@ -5,6 +5,7 @@ import { ITEMS_PER_PAGE } from "../../common/utils/constants.js";
 import { getPaginatedData } from "../../common/utils/pagination.utils.js";
 import Festival from "./festival.model.js";
 import State from "../state/state.model.js";
+import UniversalLike from "../like/like.model.js";
 
 //  PUBLIC 
 
@@ -50,7 +51,17 @@ export const getFestivalBySlug = asyncHandler(async (req, res) => {
         .populate("relatedPlaces", "name slug images.thumbnail");
 
     if (!festival) return errorResponse(res, 404, "Festival not found");
-    return successResponse(res, 200, "Festival fetched", { festival });
+    
+    let isLiked = false;
+    if (req.user) {
+        const likeDoc = await UniversalLike.findOne({ userId: req.user.id, entityType: "festival", entityId: festival._id });
+        isLiked = !!likeDoc;
+    }
+    
+    const festivalObj = festival.toObject();
+    festivalObj.isLiked = isLiked;
+
+    return successResponse(res, 200, "Festival fetched", { festival: festivalObj });
 });
 
 export const getFestivalsByState = asyncHandler(async (req, res) => {

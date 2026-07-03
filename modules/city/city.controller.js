@@ -57,7 +57,21 @@ export const getCityBySlug = asyncHandler(async (req, res) => {
         .populate("destinations", "name slug images.thumbnail category rating reviewCount description entryFee timings duration priority isActive");
 
     if (!city) return errorResponse(res, 404, "City not found");
-    return successResponse(res, 200, "City fetched", { city });
+    
+    const cityObj = city.toJSON();
+    cityObj.isLiked = false;
+    
+    if (req.user) {
+        const UniversalLike = (await import("../like/like.model.js")).default;
+        const existingLike = await UniversalLike.findOne({
+            userId: req.user.id,
+            entityType: "city",
+            entityId: city._id
+        });
+        cityObj.isLiked = !!existingLike;
+    }
+    
+    return successResponse(res, 200, "City fetched", { city: cityObj });
 });
 
 // Get city by state slug and city slug
@@ -67,7 +81,21 @@ export const getCityByStateAndSlug = asyncHandler(async (req, res) => {
     const city = await cityService.getCityByStateAndSlug(stateSlug, citySlug);
 
     if (!city) return errorResponse(res, 404, "City not found");
-    return successResponse(res, 200, "City fetched", { city });
+    
+    const cityObj = city.toJSON();
+    cityObj.isLiked = false;
+    
+    if (req.user) {
+        const UniversalLike = (await import("../like/like.model.js")).default;
+        const existingLike = await UniversalLike.findOne({
+            userId: req.user.id,
+            entityType: "city",
+            entityId: city._id
+        });
+        cityObj.isLiked = !!existingLike;
+    }
+    
+    return successResponse(res, 200, "City fetched", { city: cityObj });
 });
 
 // Get featured cities

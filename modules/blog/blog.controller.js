@@ -7,6 +7,7 @@ import Comment from "./comment.model.js";
 import Notification from "../notification/notification.model.js";
 import Like from "../like/like.model.js";
 import { getPaginatedData } from "../../common/utils/pagination.utils.js";
+import SavedItem from "../user/savedItem.model.js";
 
 // Helper to populate author
 const populateAuthor = {
@@ -74,6 +75,21 @@ export const getBlogBySlug = asyncHandler(async (req, res) => {
 
     if (!blog) return errorResponse(res, 404, "Blog not found");
 
+    let isLiked = false;
+    let isSaved = false;
+    if (req.user) {
+        const [likeDoc, saveDoc] = await Promise.all([
+            Like.findOne({ userId: req.user.id, entityType: "blog", entityId: blog._id }),
+            SavedItem.findOne({ userId: req.user.id, itemType: "blog", itemId: blog._id })
+        ]);
+        isLiked = !!likeDoc;
+        isSaved = !!saveDoc;
+    }
+
+    const blogObj = blog.toObject();
+    blogObj.isLiked = isLiked;
+    blogObj.isSaved = isSaved;
+
     // Fetch related blogs
     const relatedBlogs = await Blog.find({
         _id: { $ne: blog._id },
@@ -90,7 +106,7 @@ export const getBlogBySlug = asyncHandler(async (req, res) => {
         .select("-content -travelTips -faqs");
 
     return successResponse(res, 200, "Blog fetched", {
-        blog,
+        blog: blogObj,
         relatedBlogs
     });
 });
@@ -592,6 +608,3 @@ export const toggleLike = asyncHandler(async (req, res) => {
         return successResponse(res, 200, "Liked successfully", { isLiked: true });
     }
 });
-
-
-

@@ -6,7 +6,7 @@ import {
     getSimilarStates
 } from "./state.controller.js";
 import { validateCreateState, validateUpdateState } from "./state.validation.js";
-import { protect } from "../../common/middlewares/auth.middleware.js";
+import { protect, optionalAuth } from "../../common/middlewares/auth.middleware.js";
 import { authorizeRoles } from "../../common/middlewares/role.middleware.js";
 import { ROLES } from "../../common/utils/constants.js";
 
@@ -16,7 +16,7 @@ const router = express.Router();
 router.get("/filters", getAvailableFilters);
 router.get("/", getAllStates);
 router.get("/featured", getFeaturedStates);
-router.get("/:slug", getStateBySlug);
+router.get("/:slug", optionalAuth, getStateBySlug);
 router.get("/:slug/similar", getSimilarStates);
 
 // Admin routes

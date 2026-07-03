@@ -4,7 +4,7 @@ import {
     getPlacesByCity, getPlacesByState, getPlaceCategories,
     createPlace, updatePlace, deletePlace, adminGetAllPlaces, adminGetPlace
 } from "./place.controller.js";
-import { protect } from "../../common/middlewares/auth.middleware.js";
+import { protect, optionalAuth } from "../../common/middlewares/auth.middleware.js";
 import { authorizeRoles } from "../../common/middlewares/role.middleware.js";
 import { ROLES } from "../../common/utils/constants.js";
 
@@ -17,7 +17,7 @@ router.get("/trending", getTrendingPlaces);
 router.get("/categories", getPlaceCategories);
 router.get("/city/:citySlug", getPlacesByCity);
 router.get("/state/:stateSlug", getPlacesByState);
-router.get("/:slug", getPlaceBySlug);
+router.get("/:slug", optionalAuth, getPlaceBySlug);
 
 // Admin routes
 router.use(protect, authorizeRoles(ROLES.ADMIN));

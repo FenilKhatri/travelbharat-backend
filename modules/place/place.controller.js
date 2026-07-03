@@ -76,7 +76,21 @@ export const getPlaceBySlug = asyncHandler(async (req, res) => {
         .populate("nearbyAttractions.placeId", "name slug images.thumbnail rating");
 
     if (!place) return errorResponse(res, 404, "Place not found");
-    return successResponse(res, 200, "Place fetched", { place });
+    
+    const placeObj = place.toJSON();
+    placeObj.isLiked = false;
+    
+    if (req.user) {
+        const UniversalLike = (await import("../like/like.model.js")).default;
+        const existingLike = await UniversalLike.findOne({
+            userId: req.user.id,
+            entityType: "place",
+            entityId: place._id
+        });
+        placeObj.isLiked = !!existingLike;
+    }
+    
+    return successResponse(res, 200, "Place fetched", { place: placeObj });
 });
 
 export const getPlacesByCity = asyncHandler(async (req, res) => {

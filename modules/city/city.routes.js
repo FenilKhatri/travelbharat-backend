@@ -4,7 +4,7 @@ import {
     createCity, updateCity, deleteCity, adminGetAllCities, adminGetCity
 } from "./city.controller.js";
 import { validateCreateCity, validateUpdateCity } from "./city.validation.js";
-import { protect } from "../../common/middlewares/auth.middleware.js";
+import { protect, optionalAuth } from "../../common/middlewares/auth.middleware.js";
 import { authorizeRoles } from "../../common/middlewares/role.middleware.js";
 import { ROLES } from "../../common/utils/constants.js";
 
@@ -14,7 +14,7 @@ const router = express.Router();
 router.get("/", getAllCities);
 router.get("/featured", getFeaturedCities);
 router.get("/state/:stateSlug", getCitiesByState);
-router.get("/:citySlug", getCityBySlug);
+router.get("/:citySlug", optionalAuth, getCityBySlug);
 
 // Admin routes
 router.use(protect, authorizeRoles(ROLES.ADMIN));

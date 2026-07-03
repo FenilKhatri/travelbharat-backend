@@ -51,7 +51,20 @@ export const getStateBySlug = asyncHandler(async (req, res) => {
         return errorResponse(res, 404, "State not found");
     }
 
-    return successResponse(res, 200, "State fetched", { state });
+    const stateObj = state.toJSON();
+    stateObj.isLiked = false;
+    
+    if (req.user) {
+        const UniversalLike = (await import("../like/like.model.js")).default;
+        const existingLike = await UniversalLike.findOne({
+            userId: req.user.id,
+            entityType: "state",
+            entityId: state._id
+        });
+        stateObj.isLiked = !!existingLike;
+    }
+
+    return successResponse(res, 200, "State fetched", { state: stateObj });
 });
 
 // Get available filters for states

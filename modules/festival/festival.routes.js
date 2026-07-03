@@ -3,7 +3,7 @@ import {
     getAllFestivals, getFeaturedFestivals, getFestivalBySlug, getFestivalsByState,
     createFestival, updateFestival, deleteFestival, adminGetAllFestivals, adminGetFestival
 } from "./festival.controller.js";
-import { protect } from "../../common/middlewares/auth.middleware.js";
+import { protect, optionalAuth } from "../../common/middlewares/auth.middleware.js";
 import { authorizeRoles } from "../../common/middlewares/role.middleware.js";
 import { ROLES } from "../../common/utils/constants.js";
 
@@ -12,7 +12,7 @@ const router = express.Router();
 router.get("/", getAllFestivals);
 router.get("/featured", getFeaturedFestivals);
 router.get("/state/:stateSlug", getFestivalsByState);
-router.get("/:slug", getFestivalBySlug);
+router.get("/:slug", optionalAuth, getFestivalBySlug);
 
 router.use(protect, authorizeRoles(ROLES.ADMIN));
 router.get("/admin/all", adminGetAllFestivals);
